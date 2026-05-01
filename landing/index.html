@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>gongju — 마을의 신이 되는 게임</title>
+<meta name="description" content="마을을 내려다보는 신이 되어 자연재해와 축복을 내리는 3D 로우폴리 샌드박스 게임. Windows / macOS / Linux / Android / iOS / Web." />
+<meta name="theme-color" content="#0b0e1a" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b0e1a'/%3E%3Ccircle cx='32' cy='28' r='10' fill='%23ffd166'/%3E%3Cpath d='M10 50 L32 38 L54 50 Z' fill='%2306b894'/%3E%3C/svg%3E" />
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="gongju — Become the god of a modern town" />
+<meta property="og:description" content="A 3D low-poly sandbox god game. Strike with disasters, heal with blessings, watch the town rise or fall." />
+<meta property="og:image" content="https://gongju.game/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<style>
+  /* ---------- Reset / base ---------- */
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  :root{
+    --bg:#0b0e1a;
+    --bg-2:#11152a;
+    --fg:#eef1f8;
+    --fg-dim:#a8b0c6;
+    --accent:#ffd166;
+    --accent-2:#06b894;
+    --danger:#ff5c7a;
+    --card:#161a32;
+    --border:#252a48;
+    --radius:14px;
+    --shadow:0 6px 24px rgba(0,0,0,.4);
+    --max:1100px;
+  }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR","Noto Sans JP","Noto Sans SC",Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1000px 600px at 75% -10%, #1a2150 0%, transparent 60%) , var(--bg);
+    color:var(--fg);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+  img{max-width:100%;display:block}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+  h1,h2,h3{margin:0 0 .5em;line-height:1.2}
+  h1{font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.02em}
+  h2{font-size:clamp(1.4rem,3vw,2rem)}
+  p{margin:0 0 1em;color:var(--fg-dim)}
+  .pill{display:inline-block;padding:.25em .7em;border-radius:999px;background:#1f2545;color:var(--accent);font-size:.8rem;font-weight:600;letter-spacing:.05em}
+
+  /* ---------- Header ---------- */
+  header.site{
+    position:sticky;top:0;z-index:10;
+    backdrop-filter:saturate(160%) blur(10px);
+    background:rgba(11,14,26,.72);
+    border-bottom:1px solid var(--border);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em}
+  .logo .mark{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#ffd166,#06b894)}
+  .nav ul{display:flex;gap:18px;list-style:none;margin:0;padding:0}
+  .nav ul a{color:var(--fg-dim)}
+  .nav ul a:hover{color:var(--fg)}
+  .lang select{
+    background:var(--card);color:var(--fg);border:1px solid var(--border);
+    border-radius:8px;padding:6px 10px;outline:none
+  }
+  @media(max-width:640px){ .nav ul{display:none} }
+
+  /* ---------- Hero ---------- */
+  .hero{padding:80px 0 60px;position:relative;overflow:hidden}
+  .hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+  @media(max-width:860px){ .hero-grid{grid-template-columns:1fr} }
+  .hero h1 span.brand{
+    background:linear-gradient(135deg,#ffd166 0%,#06b894 80%);
+    -webkit-background-clip:text;background-clip:text;color:transparent
+  }
+  .ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:12px 18px;border-radius:12px;font-weight:700;
+    border:1px solid var(--border);background:var(--card);
+    transition:transform .12s ease, background .12s ease, border-color .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px);border-color:#3a4170}
+  .btn.primary{
+    background:linear-gradient(135deg,var(--accent),#ffb84d);
+    color:#1a1300;border-color:transparent;box-shadow:var(--shadow)
+  }
+  .btn.primary:hover{filter:brightness(1.05)}
+  .meta-line{display:flex;gap:14px;color:var(--fg-dim);font-size:.9rem;margin-top:14px;flex-wrap:wrap}
+  .meta-line span{display:inline-flex;align-items:center;gap:6px}
+
+  /* ---------- Hero illustration (SVG inline) ---------- */
+  .scene{
+    aspect-ratio:1/1;width:100%;max-width:460px;margin:0 auto;
+    background:radial-gradient(circle at 50% 30%, #2d3470, #0e1226 70%);
+    border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);
+    position:relative;overflow:hidden
+  }
+  .scene svg{position:absolute;inset:0;width:100%;height:100%}
+  .scene .shine{position:absolute;inset:auto auto -10% -10%;width:60%;height:60%;
+    background:radial-gradient(circle, rgba(255,209,102,.25), transparent 60%);
+    filter:blur(20px);pointer-events:none}
+
+  /* ---------- Sections ---------- */
+  section{padding:64px 0;border-top:1px solid var(--border)}
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:780px){ .features{grid-template-columns:1fr} }
+  .card{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);padding:20px
+  }
+  .card .ic{font-size:1.6rem;margin-bottom:8px}
+  .screens{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .screens .frame{
+    aspect-ratio:16/10;border-radius:12px;border:1px solid var(--border);
+    background:linear-gradient(180deg,#1a2148,#0d1230);
+    display:flex;align-items:center;justify-content:center;color:var(--fg-dim);
+    font-size:.85rem;letter-spacing:.04em
+  }
+  @media(max-width:780px){ .screens{grid-template-columns:1fr 1fr} }
+
+  /* ---------- Download ---------- */
+  .dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:780px){ .dl-grid{grid-template-columns:1fr 1fr} }
+  @media(max-width:480px){ .dl-grid{grid-template-columns:1fr} }
+  .dl-btn{
+    display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+    padding:18px;border-radius:14px;background:var(--card);border:1px solid var(--border);
+    transition:transform .12s ease, border-color .12s ease;
+    text-align:left
+  }
+  .dl-btn:hover{transform:translateY(-2px);border-color:var(--accent-2)}
+  .dl-btn .top{display:flex;justify-content:space-between;width:100%;align-items:center}
+  .dl-btn .os{font-weight:700;font-size:1.05rem}
+  .dl-btn .size{font-size:.8rem;color:var(--fg-dim)}
+  .dl-btn .sub{font-size:.85rem;color:var(--fg-dim)}
+
+  /* ---------- Newsletter ---------- */
+  .news{
+    display:flex;gap:8px;margin-top:14px;flex-wrap:wrap
+  }
+  .news input{
+    flex:1;min-width:240px;
+    padding:12px 14px;border-radius:12px;border:1px solid var(--border);
+    background:var(--bg-2);color:var(--fg);outline:none
+  }
+  .news input:focus{border-color:var(--accent-2)}
+  .news .ok{color:var(--accent-2);font-weight:700;margin-top:8px}
+  .news .err{color:var(--danger);font-weight:700;margin-top:8px}
+
+  /* ---------- FAQ ---------- */
+  .faq details{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:12px;padding:14px 16px;margin-bottom:10px
+  }
+  .faq summary{cursor:pointer;font-weight:700}
+  .faq p{margin-top:10px}
+
+  /* ---------- Footer ---------- */
+  footer.site{
+    padding:36px 0 60px;color:var(--fg-dim);
+    border-top:1px solid var(--border)
+  }
+  .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  .foot-grid a:hover{color:var(--fg)}
+
+  /* ---------- Toast ---------- */
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:#1d2348;border:1px solid var(--border);
+    padding:10px 14px;border-radius:10px;font-size:.9rem;
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:50
+  }
+  .toast.show{opacity:1}
+
+  /* Reduce motion */
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="logo" href="#top">
+      <span class="mark" aria-hidden="true"></span>
+      <span>gongju</span>
+    </a>
+    <ul>
+      <li><a href="#features" data-i18n="nav.features">기능</a></li>
+      <li><a href="#screens"  data-i18n="nav.screens">스크린샷</a></li>
+      <li><a href="#download" data-i18n="nav.download">다운로드</a></li>
+      <li><a href="#faq"      data-i18n="nav.faq">FAQ</a></li>
+    </ul>
+    <div class="lang">
+      <label class="sr-only" for="lang" data-i18n="nav.lang">언어</label>
+      <select id="lang" aria-label="language">
+        <option value="ko">한국어</option>
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero" style="border-top:0">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="pill" data-i18n="hero.tag">3D 로우폴리 · 샌드박스 · 1인 인디</span>
+        <h1 style="margin-top:14px">
+          <span class="brand">gongju</span><br/>
+          <span data-i18n="hero.title">마을의 신이 되어보세요.</span>
+        </h1>
+        <p data-i18n="hero.desc">현대 마을을 하늘에서 내려다보며, 번개와 지진 같은 자연재해를 내리거나 풍년·치유 같은 축복을 베푸세요. 마을의 운명은 당신의 손에 달려 있습니다.</p>
+        <div class="ctas">
+          <a class="btn primary" href="#download" data-track="cta-download">
+            <span aria-hidden="true">⬇</span>
+            <span data-i18n="hero.cta_download">지금 다운로드</span>
+          </a>
+          <a class="btn" href="#play-web" data-track="cta-play-web">
+            <span aria-hidden="true">▶</span>
+            <span data-i18n="hero.cta_play">웹에서 바로 플레이</span>
+          </a>
+        </div>
+        <div class="meta-line">
+          <span>🪟 Windows</span><span>🍎 macOS</span><span>🐧 Linux</span>
+          <span>🤖 Android</span><span>📱 iOS</span><span>🌐 Web</span>
+        </div>
+      </div>
+
+      <!-- inline SVG illustration: top-down village + finger of god -->
+      <div class="scene" aria-hidden="true">
+        <div class="shine"></div>
+        <svg viewBox="0 0 400 400">
+          <!-- ground -->
+          <rect x="20" y="60" width="360" height="320" rx="20" fill="#1a2350"/>
+          <!-- river -->
+          <path d="M30 280 Q120 240 200 280 T370 270 L370 320 L30 320 Z" fill="#274591" opacity=".6"/>
+          <!-- roads -->
+          <path d="M30 200 H370" stroke="#3a4170" stroke-width="6" />
+          <path d="M200 80 V360" stroke="#3a4170" stroke-width="6" />
+          <!-- houses -->
+          <g fill="#06b894">
+            <rect x="60"  y="110" width="40" height="40" rx="4"/>
+            <rect x="120" y="120" width="50" height="40" rx="4"/>
+            <rect x="240" y="100" width="40" height="50" rx="4"/>
+            <rect x="300" y="130" width="44" height="40" rx="4"/>
+            <rect x="70"  y="230" width="46" height="46" rx="4"/>
+            <rect x="150" y="230" width="32" height="46" rx="4"/>
+            <rect x="230" y="230" width="60" height="40" rx="4"/>
+            <rect x="310" y="240" width="40" height="40" rx="4"/>
+          </g>
+          <!-- church -->
+          <g fill="#ffd166">
+            <rect x="180" y="80" width="40" height="60" rx="3"/>
+            <polygon points="200,60 195,80 205,80" />
+          </g>
+          <!-- god ray / lightning -->
+          <g>
+            <circle cx="320" cy="50" r="18" fill="#ffd166"/>
+            <path d="M320 70 L290 130 L312 138 L284 220" stroke="#ffd166" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+          <!-- tiny villagers (dots) -->
+          <g fill="#eef1f8">
+            <circle cx="100" cy="200" r="2.5"/><circle cx="160" cy="210" r="2.5"/>
+            <circle cx="220" cy="195" r="2.5"/><circle cx="280" cy="205" r="2.5"/>
+            <circle cx="120" cy="290" r="2.5"/><circle cx="200" cy="305" r="2.5"/>
+            <circle cx="270" cy="295" r="2.5"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <h2 data-i18n="features.title">3가지 핵심 재미</h2>
+      <p data-i18n="features.sub">신력을 모아 권능을 시전하고, 마을의 흥망을 손끝으로 만드세요.</p>
+      <div class="features" style="margin-top:18px">
+        <div class="card"><div class="ic">⚡</div><h3 data-i18n="features.f1.t">재해를 내려라</h3><p data-i18n="features.f1.d">번개·지진·홍수·태풍·역병으로 마을을 시험에 들게 하세요. 공포가 신앙을 키웁니다.</p></div>
+        <div class="card"><div class="ic">🌾</div><h3 data-i18n="features.f2.t">축복으로 살려라</h3><p data-i18n="features.f2.d">풍년·치유·평화의 안개로 마을을 부흥시키세요. 번영하는 마을이 더 큰 신력을 돌려줍니다.</p></div>
+        <div class="card"><div class="ic">🛕</div><h3 data-i18n="features.f3.t">마을의 운명은 당신 손에</h3><p data-i18n="features.f3.d">NPC들의 출생·결혼·노동·기도·도주를 관찰하며 수십 시간의 샌드박스를 즐기세요.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section id="screens">
+    <div class="wrap">
+      <h2 data-i18n="screens.title">스크린샷</h2>
+      <p data-i18n="screens.sub">정식 출시 전까지 실시간 빌드의 한 장면을 공유합니다.</p>
+      <div class="screens" style="margin-top:18px">
+        <div class="frame">screenshot 1</div>
+        <div class="frame">screenshot 2</div>
+        <div class="frame">screenshot 3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download">
+    <div class="wrap">
+      <h2 data-i18n="download.title">지금 다운로드</h2>
+      <p data-i18n="download.sub">설치 없이 웹에서 즉시 플레이하거나, 원하는 OS의 빌드를 받아보세요. 베타 빌드는 무료입니다.</p>
+
+      <div class="dl-grid" style="margin-top:18px">
+        <a class="dl-btn" id="dl-windows" href="#" data-os="windows" data-track="download">
+          <div class="top"><span class="os">🪟 Windows</span><span class="size" data-i18n="download.beta">Beta</span></div>
+          <span class="sub">.exe / .zip · 64-bit</span>
+        </a>
+        <a class="dl-btn" id="dl-macos" href="#" data-os="macos" data-track="download">
+          <div class="top"><span class="os">🍎 macOS</span><span class="size" data-i18n="download.beta">Beta</span></div>
+          <span class="sub">.dmg · Apple Silicon / Intel</span>
+        </a>
+        <a class="dl-btn" id="dl-linux" href="#" data-os="linux" data-track="download">
+          <div class="top"><span class="os">🐧 Linux</span><span class="size" data-i18n="download.beta">Beta</span></div>
+          <span class="sub">.AppImage · x86_64</span>
+        </a>
+        <a class="dl-btn" id="dl-android" href="#" data-os="android" data-track="download">
+          <div class="top"><span class="os">🤖 Android</span><span class="size" data-i18n="download.soon">Soon</span></div>
+          <span class="sub">.apk · arm64</span>
+        </a>
+        <a class="dl-btn" id="dl-ios" href="#" data-os="ios" data-track="download">
+          <div class="top"><span class="os">📱 iOS</span><span class="size" data-i18n="download.soon">TestFlight</span></div>
+          <span class="sub">iOS 16+</span>
+        </a>
+        <a class="dl-btn" id="play-web" href="#" data-os="web" data-track="download">
+          <div class="top"><span class="os">🌐 Web</span><span class="size" data-i18n="download.beta">Beta</span></div>
+          <span class="sub">Chrome / Edge / Safari 최신</span>
+        </a>
+      </div>
+
+      <h3 style="margin-top:36px" data-i18n="news.title">출시 알림 받기</h3>
+      <p data-i18n="news.sub">정식 출시일·대규모 업데이트 시점에만 메일을 보냅니다. 광고 없음.</p>
+      <form class="news" id="news-form" novalidate>
+        <input type="email" required name="email" placeholder="you@example.com" autocomplete="email" />
+        <button class="btn primary" type="submit" data-i18n="news.submit">구독</button>
+      </form>
+      <div id="news-msg" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <h2 data-i18n="faq.title">자주 묻는 질문</h2>
+      <div class="faq" style="margin-top:18px">
+        <details>
+          <summary data-i18n="faq.q1">가격이 어떻게 되나요?</summary>
+          <p data-i18n="faq.a1">베타 기간 동안 무료로 제공됩니다. 정식 출시 시 가격은 결정되는 대로 공지합니다.</p>
+        </details>
+        <details>
+          <summary data-i18n="faq.q2">최소 사양은요?</summary>
+          <p data-i18n="faq.a2">2017년 이후 출시된 일반 노트북·스마트폰에서 동작하도록 최적화 중입니다. 웹 빌드는 WebGL2를 지원하는 최신 브라우저에서 즉시 실행됩니다.</p>
+        </details>
+        <details>
+          <summary data-i18n="faq.q3">한국어 외 다른 언어를 지원하나요?</summary>
+          <p data-i18n="faq.a3">한국어·영어·일본어·중국어를 1차 지원합니다. 추가 언어는 커뮤니티 번역으로 확장 예정입니다.</p>
+        </details>
+        <details>
+          <summary data-i18n="faq.q4">멀티플레이가 되나요?</summary>
+          <p data-i18n="faq.a4">우선 1인 샌드박스에 집중합니다. 비동기 마을 공유(다른 사람의 마을 방문)는 정식 출시 후 검토합니다.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap foot-grid">
+    <div>
+      <div class="logo"><span class="mark"></span><span>gongju</span></div>
+      <p style="margin-top:8px;font-size:.9rem">© 2026 gongju team. <span data-i18n="footer.rights">All rights reserved.</span></p>
+    </div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap">
+      <a href="mailto:hello@gongju.game">hello@gongju.game</a>
+      <a href="#" data-i18n="footer.discord">Discord</a>
+      <a href="#" data-i18n="footer.x">X (Twitter)</a>
+      <a href="#" data-i18n="footer.privacy">개인정보처리방침</a>
+      <a href="#" data-i18n="footer.terms">이용약관</a>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================
+   gongju landing — single-file
+   - i18n (ko/en/ja/zh)
+   - UTM capture (localStorage + optional Supabase POST)
+   - Download tracking
+   - Newsletter signup
+   - OS auto-suggest for hero CTA
+   ========================================================= */
+
+/* ---------- 1) Config (replace before deploy) ---------- */
+const CONFIG = {
+  // Supabase REST endpoint + anon key. Leave empty to disable network calls
+  // (the page will still capture UTMs into localStorage and work locally).
+  SUPABASE_URL: "",        // e.g. "https://xxxxx.supabase.co"
+  SUPABASE_ANON_KEY: "",   // e.g. "eyJ..."
+  // Real download URLs per OS (R2 / Cloudflare Pages). Use "#" to keep button disabled.
+  DOWNLOADS: {
+    windows: "#",
+    macos:   "#",
+    linux:   "#",
+    android: "#",
+    ios:     "#",
+    web:     "#"
+  }
+};
+
+/* ---------- 2) i18n dictionaries ---------- */
+const I18N = {
+  ko: {
+    "nav.features":"기능","nav.screens":"스크린샷","nav.download":"다운로드","nav.faq":"FAQ","nav.lang":"언어",
+    "hero.tag":"3D 로우폴리 · 샌드박스 · 1인 인디",
+    "hero.title":"마을의 신이 되어보세요.",
+    "hero.desc":"현대 마을을 하늘에서 내려다보며, 번개와 지진 같은 자연재해를 내리거나 풍년·치유 같은 축복을 베푸세요. 마을의 운명은 당신의 손에 달려 있습니다.",
+    "hero.cta_download":"지금 다운로드","hero.cta_play":"웹에서 바로 플레이",
+    "features.title":"3가지 핵심 재미","features.sub":"신력을 모아 권능을 시전하고, 마을의 흥망을 손끝으로 만드세요.",
+    "features.f1.t":"재해를 내려라","features.f1.d":"번개·지진·홍수·태풍·역병으로 마을을 시험에 들게 하세요. 공포가 신앙을 키웁니다.",
+    "features.f2.t":"축복으로 살려라","features.f2.d":"풍년·치유·평화의 안개로 마을을 부흥시키세요. 번영하는 마을이 더 큰 신력을 돌려줍니다.",
+    "features.f3.t":"마을의 운명은 당신 손에","features.f3.d":"NPC들의 출생·결혼·노동·기도·도주를 관찰하며 수십 시간의 샌드박스를 즐기세요.",
+    "screens.title":"스크린샷","screens.sub":"정식 출시 전까지 실시간 빌드의 한 장면을 공유합니다.",
+    "download.title":"지금 다운로드","download.sub":"설치 없이 웹에서 즉시 플레이하거나, 원하는 OS의 빌드를 받아보세요. 베타 빌드는 무료입니다.",
+    "download.beta":"Beta","download.soon":"준비 중",
+    "news.title":"출시 알림 받기","news.sub":"정식 출시일·대규모 업데이트 시점에만 메일을 보냅니다. 광고 없음.",
+    "news.submit":"구독","news.ok":"구독되었습니다. 감사합니다!","news.err":"올바른 이메일을 입력해주세요.",
+    "faq.title":"자주 묻는 질문",
+    "faq.q1":"가격이 어떻게 되나요?","faq.a1":"베타 기간 동안 무료로 제공됩니다. 정식 출시 시 가격은 결정되는 대로 공지합니다.",
+    "faq.q2":"최소 사양은요?","faq.a2":"2017년 이후 출시된 일반 노트북·스마트폰에서 동작하도록 최적화 중입니다. 웹 빌드는 WebGL2를 지원하는 최신 브라우저에서 즉시 실행됩니다.",
+    "faq.q3":"한국어 외 다른 언어를 지원하나요?","faq.a3":"한국어·영어·일본어·중국어를 1차 지원합니다. 추가 언어는 커뮤니티 번역으로 확장 예정입니다.",
+    "faq.q4":"멀티플레이가 되나요?","faq.a4":"우선 1인 샌드박스에 집중합니다. 비동기 마을 공유(다른 사람의 마을 방문)는 정식 출시 후 검토합니다.",
+    "footer.rights":"모든 권리를 보유합니다.","footer.discord":"Discord","footer.x":"X (Twitter)","footer.privacy":"개인정보처리방침","footer.terms":"이용약관",
+    "toast.dl":"다운로드를 시작합니다…","toast.soon":"아직 준비 중입니다. 출시 알림을 신청해주세요!"
+  },
+  en: {
+    "nav.features":"Features","nav.screens":"Screens","nav.download":"Download","nav.faq":"FAQ","nav.lang":"Language",
+    "hero.tag":"3D Low-Poly · Sandbox · Solo Indie",
+    "hero.title":"Become the god of a town.",
+    "hero.desc":"Look down on a modern town. Strike with lightning, earthquakes, floods, plagues — or bless it with harvests, healing, and peace. The fate of the town is in your hands.",
+    "hero.cta_download":"Download now","hero.cta_play":"Play in browser",
+    "features.title":"Three core thrills","features.sub":"Gather faith, cast powers, decide who lives and who flees.",
+    "features.f1.t":"Strike with disasters","features.f1.d":"Lightning, earthquakes, floods, storms, plagues. Fear feeds faith.",
+    "features.f2.t":"Save with blessings","features.f2.d":"Harvests, healing, peaceful fog. A prosperous town sends back stronger faith.",
+    "features.f3.t":"Their fate is yours","features.f3.d":"Watch NPCs born, married, working, praying, fleeing — across dozens of sandbox hours.",
+    "screens.title":"Screenshots","screens.sub":"Snapshots from the live build, until launch.",
+    "download.title":"Download","download.sub":"Play instantly in your browser, or grab a build for your OS. Beta builds are free.",
+    "download.beta":"Beta","download.soon":"Soon",
+    "news.title":"Get launch alerts","news.sub":"Emails only on launch day and major updates. No ads.",
+    "news.submit":"Subscribe","news.ok":"Subscribed. Thank you!","news.err":"Please enter a valid email.",
+    "faq.title":"FAQ",
+    "faq.q1":"How much will it cost?","faq.a1":"Free during beta. Final pricing announced before launch.",
+    "faq.q2":"What are the system requirements?","faq.a2":"Tuned to run on a 2017+ laptop or modern phone. The web build runs in any browser with WebGL2.",
+    "faq.q3":"What languages are supported?","faq.a3":"Korean, English, Japanese and Chinese at launch. More via community translations later.",
+    "faq.q4":"Is there multiplayer?","faq.a4":"We focus on solo sandbox first. Asynchronous town sharing is on the roadmap.",
+    "footer.rights":"All rights reserved.","footer.discord":"Discord","footer.x":"X (Twitter)","footer.privacy":"Privacy","footer.terms":"Terms",
+    "toast.dl":"Starting download…","toast.soon":"Not ready yet — subscribe for launch alerts!"
+  },
+  ja: {
+    "nav.features":"特徴","nav.screens":"スクリーンショット","nav.download":"ダウンロード","nav.faq":"FAQ","nav.lang":"言語",
+    "hero.tag":"3Dローポリ · サンドボックス · 1人開発",
+    "hero.title":"村の神になろう。",
+    "hero.desc":"現代の村を空から見下ろし、雷・地震・洪水・疫病で試したり、豊作・癒し・平和の霧で祝福したり。村の運命はあなたの手に。",
+    "hero.cta_download":"今すぐダウンロード","hero.cta_play":"ブラウザで遊ぶ",
+    "features.title":"3つの核心","features.sub":"信仰を集め、権能を放ち、村の運命を指先で。",
+    "features.f1.t":"災害を下せ","features.f1.d":"雷・地震・洪水・嵐・疫病。恐れは信仰を育てる。",
+    "features.f2.t":"祝福で救え","features.f2.d":"豊作・癒し・平和の霧。栄える村はより大きな信仰を返す。",
+    "features.f3.t":"運命はあなたの手に","features.f3.d":"村人の誕生・結婚・労働・祈り・逃走を見守る、数十時間のサンドボックス。",
+    "screens.title":"スクリーンショット","screens.sub":"正式リリースまでの開発ビルドより。",
+    "download.title":"ダウンロード","download.sub":"ブラウザで即プレイ、または各OSのビルドをどうぞ。ベータは無料。",
+    "download.beta":"ベータ","download.soon":"準備中",
+    "news.title":"リリース通知を受け取る","news.sub":"リリース日と大型アップデート時のみ送信。広告なし。",
+    "news.submit":"登録","news.ok":"登録しました。ありがとうございます！","news.err":"有効なメールを入力してください。",
+    "faq.title":"よくある質問",
+    "faq.q1":"価格はいくらですか？","faq.a1":"ベータ期間中は無料です。正式価格は発表時にお知らせします。",
+    "faq.q2":"動作環境は？","faq.a2":"2017年以降の一般的なノートPC・スマートフォンで動くよう調整中。Web版はWebGL2対応の最新ブラウザで即実行。",
+    "faq.q3":"対応言語は？","faq.a3":"日本語・韓国語・英語・中国語を初期サポート。追加はコミュニティ翻訳で。",
+    "faq.q4":"マルチプレイは？","faq.a4":"まずソロのサンドボックスに集中します。非同期の村共有は正式リリース後に検討。",
+    "footer.rights":"All rights reserved.","footer.discord":"Discord","footer.x":"X (Twitter)","footer.privacy":"プライバシー","footer.terms":"利用規約",
+    "toast.dl":"ダウンロードを開始します…","toast.soon":"まだ準備中です。通知登録をどうぞ！"
+  },
+  zh: {
+    "nav.features":"功能","nav.screens":"截图","nav.download":"下载","nav.faq":"常见问题","nav.lang":"语言",
+    "hero.tag":"3D 低多边形 · 沙盒 · 独立开发",
+    "hero.title":"成为这座小镇的神。",
+    "hero.desc":"从天空俯瞰一座现代小镇。降下闪电、地震、洪水与瘟疫，或赐予丰收、治愈与和平。小镇的命运在你手中。",
+    "hero.cta_download":"立即下载","hero.cta_play":"网页直接玩",
+    "features.title":"三大核心乐趣","features.sub":"积累信仰，施展神权，在指尖之间决定小镇兴衰。",
+    "features.f1.t":"降下灾难","features.f1.d":"闪电、地震、洪水、风暴、瘟疫。恐惧滋养信仰。",
+    "features.f2.t":"赐福救赎","features.f2.d":"丰收、治愈、和平之雾。繁荣的小镇会回报更强的信仰。",
+    "features.f3.t":"命运由你","features.f3.d":"观察 NPC 的出生、婚姻、工作、祈祷与逃亡，享受数十小时的沙盒体验。",
+    "screens.title":"截图","screens.sub":"正式发布前来自实时构建的画面。",
+    "download.title":"下载","download.sub":"在浏览器中即刻试玩，或下载对应平台版本。测试版免费。",
+    "download.beta":"测试版","download.soon":"即将推出",
+    "news.title":"获取上线通知","news.sub":"仅在正式上线和重大更新时邮件通知。无广告。",
+    "news.submit":"订阅","news.ok":"订阅成功，谢谢！","news.err":"请输入有效的邮箱地址。",
+    "faq.title":"常见问题",
+    "faq.q1":"售价多少？","faq.a1":"测试期免费。正式定价将在发布前公布。",
+    "faq.q2":"系统要求？","faq.a2":"针对 2017 年后的笔记本与智能手机优化。网页版支持 WebGL2 的现代浏览器即可运行。",
+    "faq.q3":"支持哪些语言？","faq.a3":"上线时支持中、日、韩、英。更多语言将通过社区翻译扩展。",
+    "faq.q4":"有联机吗？","faq.a4":"先专注于单人沙盒。异步村庄共享将在正式上线后评估。",
+    "footer.rights":"保留所有权利。","footer.discord":"Discord","footer.x":"X (Twitter)","footer.privacy":"隐私政策","footer.terms":"使用条款",
+    "toast.dl":"开始下载…","toast.soon":"尚未上线 — 订阅获取上线通知！"
+  }
+};
+
+/* ---------- 3) Utilities ---------- */
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+function uuid(){
+  return (crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : "xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx".replace(/[xy]/g,c=>{
+        const r=Math.random()*16|0; const v=c==="x"?r:(r&0x3|0x8); return v.toString(16);
+      });
+}
+
+function detectOS(){
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return "android";
+  if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Mac OS X/i.test(ua)) return "macos";
+  if (/Linux/i.test(ua)) return "linux";
+  return "web";
+}
+
+function detectLang(){
+  const saved = localStorage.getItem("gongju.lang");
+  if (saved && I18N[saved]) return saved;
+  const code = (navigator.language || "ko").slice(0,2).toLowerCase();
+  if (I18N[code]) return code;
+  return "ko";
+}
+
+/* ---------- 4) i18n applier ---------- */
+function applyI18n(lang){
+  const dict = I18N[lang] || I18N.ko;
+  document.documentElement.lang = lang;
+  $$("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) el.textContent = dict[key];
+  });
+  $("#lang").value = lang;
+  localStorage.setItem("gongju.lang", lang);
+}
+
+/* ---------- 5) Session + UTM capture ---------- */
+function getSession(){
+  let s = localStorage.getItem("gongju.session");
+  if (!s){ s = uuid(); localStorage.setItem("gongju.session", s); }
+  return s;
+}
+
+function captureUTM(){
+  const url = new URL(location.href);
+  const utm = {
+    utm_source:   url.searchParams.get("utm_source"),
+    utm_medium:   url.searchParams.get("utm_medium"),
+    utm_campaign: url.searchParams.get("utm_campaign"),
+    utm_content:  url.searchParams.get("utm_content"),
+    utm_term:     url.searchParams.get("utm_term"),
+    ref_code:     url.searchParams.get("ref")
+  };
+  const hasAny = Object.values(utm).some(Boolean);
+  if (hasAny){
+    localStorage.setItem("gongju.utm", JSON.stringify({ ...utm, capturedAt: Date.now() }));
+  }
+  return JSON.parse(localStorage.getItem("gongju.utm") || "null") || {};
+}
+
+/* ---------- 6) Supabase REST helper ---------- */
+async function sbInsert(table, row){
+  if (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) return; // disabled / offline
+  try{
+    await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${table}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": CONFIG.SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + CONFIG.SUPABASE_ANON_KEY,
+        "Prefer": "return=minimal"
+      },
+      body: JSON.stringify(row),
+      keepalive: true
+    });
+  }catch(e){ /* silent — never block UX */ }
+}
+
+/* ---------- 7) Trackers ---------- */
+async function trackVisit(){
+  const utm = captureUTM();
+  const session_id = getSession();
+  const row = {
+    session_id,
+    utm_source: utm.utm_source || null,
+    utm_medium: utm.utm_medium || null,
+    utm_campaign: utm.utm_campaign || null,
+    utm_content: utm.utm_content || null,
+    utm_term: utm.utm_term || null,
+    ref_code: utm.ref_code || null,
+    path: location.pathname,
+    referrer: document.referrer || null,
+    ua: navigator.userAgent,
+    lang: navigator.language || null
+  };
+  console.debug("[gongju] visit", row);
+  await sbInsert("visits", row);
+}
+
+async function trackDownload(os){
+  const utm = JSON.parse(localStorage.getItem("gongju.utm") || "{}");
+  const row = {
+    session_id: getSession(),
+    os, lang: localStorage.getItem("gongju.lang") || null,
+    ref_code: utm.ref_code || null
+  };
+  console.debug("[gongju] download", row);
+  await sbInsert("downloads", row);
+}
+
+/* ---------- 8) Toast ---------- */
+let toastTimer;
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2400);
+}
+
+/* ---------- 9) Wire DOM ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  // 9.1 i18n
+  const lang = detectLang();
+  applyI18n(lang);
+  $("#lang").addEventListener("change", e => applyI18n(e.target.value));
+
+  // 9.2 visit tracking
+  trackVisit();
+
+  // 9.3 highlight likely OS button
+  const os = detectOS();
+  const myBtn = document.querySelector(`[data-os="${os}"]`);
+  if (myBtn){ myBtn.style.borderColor = "var(--accent-2)"; }
+
+  // 9.4 download / play buttons
+  $$("[data-track='download']").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const targetOS = btn.dataset.os || "web";
+      const url = CONFIG.DOWNLOADS[targetOS];
+      trackDownload(targetOS);
+      const dict = I18N[localStorage.getItem("gongju.lang") || "ko"];
+      if (!url || url === "#"){
+        e.preventDefault();
+        toast(dict["toast.soon"]);
+        return;
+      }
+      toast(dict["toast.dl"]);
+      // navigate after a tick so the toast renders
+      e.preventDefault();
+      setTimeout(()=>{ location.href = url; }, 250);
+    });
+  });
+
+  // 9.5 hero CTAs
+  $$("[data-track='cta-download'],[data-track='cta-play-web']").forEach(a => {
+    a.addEventListener("click", () => console.debug("[gongju] cta", a.dataset.track));
+  });
+
+  // 9.6 newsletter
+  const form = $("#news-form");
+  const msg  = $("#news-msg");
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const dict = I18N[localStorage.getItem("gongju.lang") || "ko"];
+    const email = form.email.value.trim();
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    msg.className = "";
+    if (!ok){
+      msg.className = "err";
+      msg.textContent = dict["news.err"];
+      return;
+    }
+    const utm = JSON.parse(localStorage.getItem("gongju.utm") || "{}");
+    await sbInsert("newsletter", {
+      email,
+      lang: localStorage.getItem("gongju.lang") || null,
+      ref_code: utm.ref_code || null,
+      utm_source: utm.utm_source || null
+    });
+    msg.className = "ok";
+    msg.textContent = dict["news.ok"];
+    form.reset();
+  });
+});
+</script>
+
+</body>
+</html>
