@@ -1,0 +1,46 @@
+[
+  {
+    "id": "harvest",
+    "name_key": "BLESSING_HARVEST_NAME",
+    "desc_key": "BLESSING_HARVEST_DESC",
+    "icon_emoji": "🌾",
+    "color": "#f5c95d",
+    "prosperity_delta": 30,
+    "duration_sec": 60,
+    "radius": 12,
+    "cost_faith": 20,
+    "cooldown_sec": 8,
+    "vfx": "harvest",
+    "tags": ["economy"],
+    "unlock_level": 1
+  },
+  {
+    "id": "heal",
+    "name_key": "BLESSING_HEAL_NAME",
+    "desc_key": "BLESSING_HEAL_DESC",
+    "icon_emoji": "💚",
+    "color": "#7ee07b",
+    "heal": 60,
+    "radius": 8,
+    "cost_faith": 15,
+    "cooldown_sec": 4,
+    "vfx": "heal",
+    "tags": ["health"],
+    "unlock_level": 1
+  },
+  {
+    "id": "peace_fog",
+    "name_key": "BLESSING_PEACE_NAME",
+    "desc_key": "BLESSING_PEACE_DESC",
+    "icon_emoji": "🌫️",
+    "color": "#cfd8e8",
+    "fear_delta": -40,
+    "duration_sec": 40,
+    "radius": 18,
+    "cost_faith": 30,
+    "cooldown_sec": 20,
+    "vfx": "peace_fog",
+    "tags": ["mood"],
+    "unlock_level": 2
+  }
+]

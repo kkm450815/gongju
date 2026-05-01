@@ -1,0 +1,42 @@
+KEY,VALUE
+APP_TITLE,gongju — God of the Town
+HUD_FAITH,Faith
+HUD_POPULATION,Pop.
+HUD_PROSPERITY,Prosperity
+HUD_FEAR,Fear
+HUD_DAY,Day
+HUD_PAUSE,Pause
+HUD_PLAY,Play
+HUD_SPEED,Speed
+HUD_DISASTERS,Disasters
+HUD_BLESSINGS,Blessings
+HUD_HINT_SELECT,Pick a power and click the town.
+HUD_HINT_NOT_ENOUGH,Not enough faith.
+HUD_HINT_COOLDOWN,On cooldown…
+DISASTER_LIGHTNING_NAME,Lightning
+DISASTER_LIGHTNING_DESC,Strike a single spot with divine wrath.
+DISASTER_EARTHQUAKE_NAME,Earthquake
+DISASTER_EARTHQUAKE_DESC,Shake a wide area, crushing buildings.
+DISASTER_FLOOD_NAME,Flood
+DISASTER_FLOOD_DESC,Sweep the town with raging waters.
+DISASTER_PLAGUE_NAME,Plague
+DISASTER_PLAGUE_DESC,A creeping disease that drains life.
+BLESSING_HARVEST_NAME,Harvest
+BLESSING_HARVEST_DESC,Greatly boost prosperity in the area.
+BLESSING_HEAL_NAME,Heal
+BLESSING_HEAL_DESC,Restore HP to all lives in range.
+BLESSING_PEACE_NAME,Peaceful Fog
+BLESSING_PEACE_DESC,Calm the town's fear.
+BUILDING_HOUSE_SMALL_NAME,Small House
+BUILDING_HOUSE_BIG_NAME,Big House
+BUILDING_SHOP_NAME,Shop
+BUILDING_CHURCH_NAME,Church
+BUILDING_PARK_NAME,Park
+NPC_VILLAGER_NAME,Villager
+NPC_CHILD_NAME,Child
+NPC_PRIEST_NAME,Priest
+EVENT_FESTIVAL_NAME,A festival has begun.
+EVENT_STRANGER_NAME,A stranger visits the town.
+LOG_NPC_DIED,A life was lost.
+LOG_BUILDING_DESTROYED,A building has crumbled.
+LOG_NPC_BORN,A new life has been born.

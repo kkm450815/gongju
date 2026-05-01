@@ -1,0 +1,64 @@
+[
+  {
+    "id": "house_small",
+    "name_key": "BUILDING_HOUSE_SMALL_NAME",
+    "model": "res://assets/kenney/buildings/building-house-block-small.glb",
+    "fallback_color": "#06b894",
+    "footprint": [3, 3],
+    "max_residents": 4,
+    "hp": 100,
+    "build_cost": 50,
+    "weight": 6,
+    "tags": ["residential"]
+  },
+  {
+    "id": "house_big",
+    "name_key": "BUILDING_HOUSE_BIG_NAME",
+    "model": "res://assets/kenney/buildings/building-house-block-big.glb",
+    "fallback_color": "#0a8b6f",
+    "footprint": [5, 5],
+    "max_residents": 8,
+    "hp": 180,
+    "build_cost": 120,
+    "weight": 3,
+    "tags": ["residential"]
+  },
+  {
+    "id": "shop",
+    "name_key": "BUILDING_SHOP_NAME",
+    "model": "res://assets/kenney/buildings/building-shop-large.glb",
+    "fallback_color": "#5b8def",
+    "footprint": [4, 4],
+    "max_residents": 0,
+    "hp": 150,
+    "build_cost": 200,
+    "weight": 2,
+    "prosperity_per_sec": 0.4,
+    "tags": ["economy"]
+  },
+  {
+    "id": "church",
+    "name_key": "BUILDING_CHURCH_NAME",
+    "model": "res://assets/kenney/buildings/building-church.glb",
+    "fallback_color": "#ffd166",
+    "footprint": [6, 8],
+    "max_residents": 0,
+    "hp": 400,
+    "build_cost": 500,
+    "weight": 1,
+    "faith_per_sec": 0.6,
+    "tags": ["religious", "faith_source", "critical"]
+  },
+  {
+    "id": "park",
+    "name_key": "BUILDING_PARK_NAME",
+    "model": "res://assets/kenney/nature/tree-oak.glb",
+    "fallback_color": "#5fb04a",
+    "footprint": [3, 3],
+    "max_residents": 0,
+    "hp": 60,
+    "build_cost": 30,
+    "weight": 4,
+    "tags": ["nature"]
+  }
+]

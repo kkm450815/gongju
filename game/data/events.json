@@ -1,0 +1,23 @@
+[
+  {
+    "id": "festival",
+    "name_key": "EVENT_FESTIVAL_NAME",
+    "trigger": { "type": "interval", "min_sec": 180, "max_sec": 360 },
+    "conditions": { "min_population": 10, "max_fear": 60 },
+    "effects": [
+      { "type": "prosperity_delta", "value": 30 },
+      { "type": "faith_delta", "value": 15 }
+    ],
+    "duration_sec": 60
+  },
+  {
+    "id": "stranger_visit",
+    "name_key": "EVENT_STRANGER_NAME",
+    "trigger": { "type": "interval", "min_sec": 120, "max_sec": 300 },
+    "conditions": { "min_population": 5 },
+    "effects": [
+      { "type": "spawn_npc", "id": "villager_male", "count": 1 }
+    ],
+    "duration_sec": 1
+  }
+]

@@ -1,0 +1,63 @@
+[
+  {
+    "id": "lightning",
+    "name_key": "DISASTER_LIGHTNING_NAME",
+    "desc_key": "DISASTER_LIGHTNING_DESC",
+    "icon_emoji": "⚡",
+    "color": "#ffd166",
+    "damage": 80,
+    "radius": 4,
+    "cost_faith": 8,
+    "cooldown_sec": 1.5,
+    "fear_increase": 12,
+    "vfx": "lightning",
+    "sfx": "res://assets/kenney/sfx/thunder.ogg",
+    "tags": ["weather", "instant"],
+    "unlock_level": 1
+  },
+  {
+    "id": "earthquake",
+    "name_key": "DISASTER_EARTHQUAKE_NAME",
+    "desc_key": "DISASTER_EARTHQUAKE_DESC",
+    "icon_emoji": "🌋",
+    "color": "#a07060",
+    "damage": 150,
+    "radius": 16,
+    "cost_faith": 60,
+    "cooldown_sec": 30,
+    "fear_increase": 50,
+    "vfx": "earthquake",
+    "tags": ["geology", "area"],
+    "unlock_level": 3
+  },
+  {
+    "id": "flood",
+    "name_key": "DISASTER_FLOOD_NAME",
+    "desc_key": "DISASTER_FLOOD_DESC",
+    "icon_emoji": "🌊",
+    "color": "#4aa3ff",
+    "damage": 60,
+    "radius": 12,
+    "cost_faith": 40,
+    "cooldown_sec": 18,
+    "fear_increase": 30,
+    "vfx": "flood",
+    "tags": ["weather", "area"],
+    "unlock_level": 2
+  },
+  {
+    "id": "plague",
+    "name_key": "DISASTER_PLAGUE_NAME",
+    "desc_key": "DISASTER_PLAGUE_DESC",
+    "icon_emoji": "☠️",
+    "color": "#7ee07b",
+    "damage": 30,
+    "radius": 10,
+    "cost_faith": 35,
+    "cooldown_sec": 25,
+    "fear_increase": 35,
+    "vfx": "plague",
+    "tags": ["biology", "dot"],
+    "unlock_level": 4
+  }
+]

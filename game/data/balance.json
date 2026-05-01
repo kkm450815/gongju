@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "faith_regen_per_sec": 0.8,
+  "max_faith_base": 100,
+  "max_faith_per_level": 50,
+  "fear_decay_per_sec": 0.1,
+  "day_length_sec": 120,
+  "npc_birth_rate": 0.0008,
+  "npc_death_rate_base": 0.0003,
+  "save_autosave_interval_sec": 60,
+  "town_size": 60,
+  "starting_npcs": 18,
+  "starting_buildings": 12,
+  "camera_min_zoom": 8,
+  "camera_max_zoom": 60,
+  "camera_default_zoom": 28
+}

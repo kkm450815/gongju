@@ -1,104 +1,107 @@
 # game/ — Godot 4 프로젝트
 
-이 폴더에는 아직 코드가 없습니다. 본 README는 **1인 개발자가 첫 빌드를 띄우기까지의 부트스트랩 절차**를 정리합니다. 본격 구현은 별도 작업으로 분리되어 있습니다.
+이 폴더에는 **F5 한 번이면 즉시 동작하는 MVP 스켈레톤**이 들어 있습니다. 3D 카메라, 마을 바닥, NPC·건물 자동 스폰, 권능 시전 4종, 신력/공포/번영 게이지, 4언어 i18n, Supabase 연동(선택)까지 코드로 구현되어 있습니다. 모델은 직접 그리지 않고 **CC0 무료 라이브러리(Kenney·Quaternius)**를 그대로 사용합니다.
 
-## 0. 사전 준비
+## 0. 실행 (3분)
 
-- Godot 4 LTS 다운로드: https://godotengine.org (Standard 빌드, C# 사용 시 `.NET` 빌드)
-- Git LFS (모델·텍스처 용량 큰 경우 권장)
+1. https://godotengine.org 에서 **Godot 4.2 이상** 다운로드 (Standard 빌드)
+2. Godot Project Manager → **Import** → 이 폴더의 `project.godot` 선택
+3. F5 (또는 ▶ 버튼) — 메인 씬으로 자동 지정되어 있어 별도 설정 불필요
+4. 실행 화면:
+   - 위에서 내려다보는 마을 (컬러 큐브들이 건물·NPC, 에셋 받기 전 fallback)
+   - 좌상단: 신력·인구·번영·공포 게이지
+   - 하단: 재해/축복 버튼
+   - 우상단: 일시정지·1×/2×/4× 속도·언어 토글
 
-## 1. 프로젝트 생성
+## 1. 조작
 
-1. Godot 실행 → **New Project**
-2. Project Path: `<repo>/game`
-3. Renderer: **Forward+** (모바일에선 자동으로 Mobile 렌더러 fallback)
-4. 생성 후 Editor 종료한 채 폴더 구조를 아래처럼 맞춥니다.
+| 입력 | 동작 |
+|---|---|
+| 마우스 휠 | 줌인/아웃 |
+| 우클릭 드래그 | 카메라 회전 |
+| W/A/S/D | 카메라 이동 |
+| 권능 버튼 → 좌클릭 | 해당 위치에 권능 시전 (신력 소모) |
+| Space | 일시정지 토글 |
+| 1 / 2 / 3 | 속도 1× / 2× / 4× |
+
+## 2. 무료 3D 라이브러리 적용 (예쁘게 만들기)
+
+게임이 컬러 큐브로 보일 때, [`assets/README.md`](./assets/README.md)의 안내에 따라 Kenney 팩을 받아 `assets/kenney/`에 풀어 넣으면 자동으로 모델이 표시됩니다.
+
+추천 다운로드 (모두 CC0):
+- **Kenney City Kit (Suburban / Commercial)**: 건물
+- **Kenney Mini Characters / Toon Characters**: NPC
+- **Kenney Nature Kit**: 나무·바위
+- **Mixamo**: 걷기·기도·도주 애니메이션 (Adobe 무료)
+
+`data/buildings.json`과 `data/npcs.json`의 `model` 경로를 받은 파일 이름과 맞춰주세요. 경로가 안 맞으면 그냥 fallback 큐브로 표시되니 게임이 멈추지 않습니다.
+
+## 3. 폴더 구조
 
 ```
 game/
-├── project.godot
-├── scenes/
-│   ├── main.tscn
-│   ├── town.tscn
-│   ├── buildings/
-│   ├── npc/
-│   └── powers/
+├── project.godot               # 자동로드 9개 등록 + 입력 매핑
+├── scenes/main.tscn            # 빈 Node3D + main.gd 부착
 ├── scripts/
-│   ├── systems/
+│   ├── main.gd                 # 월드 빌더 + 입력 + 권능 시전
+│   ├── systems/                # 9개 autoload (싱글톤)
+│   │   ├── data_loader.gd      # data/*.json 로드
+│   │   ├── i18n.gd             # i18n/*.csv 로드 + I18N.t("KEY")
+│   │   ├── time_system.gd      # 일자·속도·일시정지
+│   │   ├── weather_system.gd
+│   │   ├── economy_system.gd   # 번영도
+│   │   ├── faith_system.gd     # 신력 + 공포
+│   │   ├── disaster_system.gd  # 권능 시전 → 데미지/치유 신호
+│   │   ├── remote_config.gd    # Supabase에서 밸런스 fetch (선택)
+│   │   └── telemetry.gd        # 30초 배치로 events POST (선택)
 │   ├── entities/
-│   └── powers/
-├── data/
-│   ├── buildings.json
-│   ├── npcs.json
-│   ├── disasters.json
-│   ├── blessings.json
-│   ├── events.json
-│   └── balance.json
-├── i18n/
-│   ├── ko.csv
-│   ├── en.csv
-│   ├── ja.csv
-│   └── zh.csv
-├── addons/
-└── assets/
-    ├── models/
-    ├── textures/
-    └── sfx/
+│   │   ├── npc.gd              # CharacterBody3D, 무작위 wander/flee
+│   │   └── building.gd         # StaticBody3D, HP·passive 보너스
+│   ├── powers/
+│   │   └── power_vfx.gd        # 데이터 주도 시각효과
+│   └── ui/
+│       └── hud.gd              # 코드로 그린 in-game UI
+├── data/                       # ★ JSON만 추가하면 콘텐츠 확장
+├── i18n/                       # ko/en/ja/zh CSV
+└── assets/                     # Kenney 팩 등을 여기에
 ```
 
-## 2. Autoload(싱글톤) 등록
+## 4. 콘텐츠 추가 (코드 수정 없음)
 
-`Project > Project Settings > Autoload`에서 다음을 등록:
+새 재해/축복/건물/NPC를 추가하려면 [`../docs/CONFIG_GUIDE.md`](../docs/CONFIG_GUIDE.md)를 참조하세요. JSON에 한 항목 추가 + i18n CSV 4개에 키 추가만으로 게임에 즉시 등장합니다.
 
-| 이름 | 경로 | 역할 |
-|---|---|---|
-| `DataLoader` | `res://scripts/systems/data_loader.gd` | `data/*.json` 부팅 시 로드·검증 |
-| `TimeSystem` | `res://scripts/systems/time_system.gd` | 낮/밤·계절·게임 속도 |
-| `WeatherSystem` | `res://scripts/systems/weather_system.gd` | 날씨·계절 효과 |
-| `EconomySystem` | `res://scripts/systems/economy_system.gd` | 번영도·생산량 |
-| `FaithSystem` | `res://scripts/systems/faith_system.gd` | 신력·신앙·레벨 |
-| `DisasterSystem` | `res://scripts/systems/disaster_system.gd` | 권능 시전·이벤트 |
-| `RemoteConfig` | `res://scripts/systems/remote_config.gd` | Supabase에서 balance JSON 받아 덮어쓰기 |
-| `Telemetry` | `res://scripts/systems/telemetry.gd` | events 배치 전송 |
+## 5. Supabase 연동 (선택)
 
-## 3. i18n 등록
+게임이 통계와 원격 밸런스를 사용하게 하려면:
 
-1. `Project > Project Settings > Localization > Translations`
-2. `i18n/ko.csv`, `en.csv`, `ja.csv`, `zh.csv` 4개 파일 추가
-3. 코드에서 `tr("KEY")`로 호출
+1. Supabase 무료 프로젝트 생성 → SQL Editor에 `../server/supabase/schema.sql` 적용
+2. `scripts/systems/remote_config.gd`와 `telemetry.gd` 상단의 상수를 채움:
+   ```gdscript
+   const SUPABASE_URL := "https://xxxx.supabase.co"
+   const SUPABASE_ANON_KEY := "eyJ..."
+   ```
+3. F5 — 30초 후 Supabase `events` 테이블에 `session_start` 행, `power_cast` 행 INSERT 확인
 
-CSV 형식과 키 규약은 [`../docs/CONFIG_GUIDE.md`](../docs/CONFIG_GUIDE.md#7-i18n-csv-형식) 참고.
+비워두면 모든 네트워크 호출은 스킵되고 게임은 오프라인으로 동작합니다.
 
-## 4. Supabase 연결
+## 6. Export (출시 빌드)
 
-1. Supabase 프로젝트 생성 → `../server/supabase/schema.sql` 실행
-2. `scripts/systems/telemetry.gd`와 `remote_config.gd`에 `SUPABASE_URL`, `SUPABASE_ANON_KEY` 입력
-3. 앱 시작 시 `auth.signInAnonymously` → access_token을 메모리 보관
-4. 30초마다 `events` POST, 시작 시 `game_config` GET
+`Project > Export`에서 프리셋 추가:
 
-## 5. Export 프리셋
-
-`Project > Export`에서 다음 프리셋을 만들고 **자주 빌드해 회귀를 잡습니다**.
-
-| 프리셋 | 비고 |
+| 플랫폼 | 비고 |
 |---|---|
-| Web | `Cross-Origin-Opener-Policy: same-origin` 헤더 필요(Cloudflare Pages `_headers`) |
-| Windows Desktop | NSIS 인스톨러는 후처리 단계에서 |
-| macOS | 공증은 출시 직전 단계에서 |
-| Linux/X11 | AppImage가 가장 간단 |
-| Android | Keystore 별도 관리 |
-| iOS | Xcode 프로젝트 export 후 Apple Developer 계정 필요 |
+| Web | `Cross-Origin-Opener-Policy: same-origin` 헤더(Cloudflare Pages `_headers`) |
+| Windows Desktop | NSIS 인스톨러 후처리 |
+| macOS | 출시 직전 공증(notarization) |
+| Linux/X11 | AppImage 권장 |
+| Android | Keystore 별도 |
+| iOS | Xcode export → TestFlight |
 
-## 6. 첫 권능(번개) 만들기 — 데이터 주도 검증용
+## 7. 알려진 한계 (MVP)
 
-1. `data/disasters.json`에 `lightning` 항목 추가 ([CONFIG_GUIDE.md](../docs/CONFIG_GUIDE.md) 예시)
-2. `i18n/*.csv` 4개에 `DISASTER_LIGHTNING_NAME`/`_DESC` 키 추가
-3. `scenes/powers/lightning.tscn` 만들기 (간단한 GPUParticles3D + 라이트 1개로 충분)
-4. 게임 실행 → 권능 메뉴에 자동 노출, 클릭 후 마을 클릭 → 시전
+- 본격 NPC AI(직장·결혼·기도)는 미구현, 현재는 wander + flee
+- 사운드는 빈 슬롯, `assets/kenney/sfx/`에 받아 넣으면 자동 재생되도록 후속 작업 필요
+- 세이브/로드 미구현
+- 멀티플레이 미구현
 
-여기까지 동작하면 **모든 후속 권능은 코드 수정 없이 JSON + i18n 키만으로 추가** 가능합니다.
-
-## 7. 다음 단계
-
-- 본격 시스템 구현은 `docs/PRODUCTION_MANUAL.md` §9 일정 가이드 참조
-- 콘텐츠 추가는 `docs/CONFIG_GUIDE.md`만 보면 됨
+12주 풀 일정은 [`../docs/PRODUCTION_MANUAL.md`](../docs/PRODUCTION_MANUAL.md) §9 참조.

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "villager_male",
+    "name_key": "NPC_VILLAGER_NAME",
+    "model": "res://assets/kenney/characters/character-male-a.glb",
+    "fallback_color": "#eef1f8",
+    "hp": 100,
+    "speed": 2.2,
+    "faith_contribution": 1.0,
+    "fear_threshold": 80,
+    "weight": 5,
+    "behaviors": ["wander", "flee", "pray"]
+  },
+  {
+    "id": "villager_female",
+    "name_key": "NPC_VILLAGER_NAME",
+    "model": "res://assets/kenney/characters/character-female-a.glb",
+    "fallback_color": "#ffd1dc",
+    "hp": 100,
+    "speed": 2.2,
+    "faith_contribution": 1.0,
+    "fear_threshold": 80,
+    "weight": 5,
+    "behaviors": ["wander", "flee", "pray"]
+  },
+  {
+    "id": "child",
+    "name_key": "NPC_CHILD_NAME",
+    "model": "res://assets/kenney/characters/character-child.glb",
+    "fallback_color": "#ffeaa7",
+    "hp": 50,
+    "speed": 2.6,
+    "faith_contribution": 0.4,
+    "fear_threshold": 40,
+    "weight": 2,
+    "behaviors": ["wander", "flee"]
+  },
+  {
+    "id": "priest",
+    "name_key": "NPC_PRIEST_NAME",
+    "model": "res://assets/kenney/characters/character-priest.glb",
+    "fallback_color": "#a18cf0",
+    "hp": 90,
+    "speed": 1.8,
+    "faith_contribution": 5.0,
+    "fear_threshold": 200,
+    "weight": 1,
+    "behaviors": ["pray", "wander"]
+  }
+]
