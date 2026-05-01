@@ -1,0 +1,70 @@
+:root{
+  --bg:#0b0e1a;
+  --card:#161a32;
+  --border:#252a48;
+  --fg:#eef1f8;
+  --fg-dim:#a8b0c6;
+  --accent:#ffd166;
+  --accent-2:#06b894;
+  --danger:#ff5c7a;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1000px 600px at 75% -10%, #1a2150 0%, transparent 60%) , var(--bg);
+  color:var(--fg);
+  font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Noto Sans KR",Segoe UI,Roboto,sans-serif;
+  line-height:1.5;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer}
+.topbar{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 24px;border-bottom:1px solid var(--border);
+  backdrop-filter:saturate(160%) blur(10px);
+  background:rgba(11,14,26,.72);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800}
+.brand .mark{width:24px;height:24px;border-radius:6px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.topbar nav{display:flex;gap:18px;color:var(--fg-dim)}
+.topbar nav a:hover{color:var(--fg)}
+.page{max-width:1200px;margin:0 auto;padding:28px 24px}
+h1,h2,h3{margin:0 0 .4em}
+h1{font-size:1.6rem}
+h2{font-size:1.25rem;margin-top:24px}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:16px}
+@media(max-width:1100px){ .cards{grid-template-columns:repeat(3,1fr)} }
+@media(max-width:600px){ .cards{grid-template-columns:repeat(2,1fr)} }
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:14px;
+}
+.card .label{color:var(--fg-dim);font-size:.85rem}
+.card .value{font-size:1.6rem;font-weight:800;margin-top:4px}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.92rem}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--fg-dim);font-weight:600;font-size:.82rem;letter-spacing:.04em;text-transform:uppercase}
+td.mono, code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem}
+input,select,textarea{
+  width:100%;padding:10px 12px;border-radius:10px;
+  background:#0e1230;color:var(--fg);border:1px solid var(--border);
+  outline:none
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent-2)}
+.row{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+@media(max-width:700px){ .row{grid-template-columns:1fr} }
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 14px;border:1px solid var(--border);background:var(--card);
+  color:var(--fg);border-radius:10px;font-weight:600;
+}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#ffb84d);color:#1a1300;border-color:transparent}
+.btn:hover{border-color:#3a4170}
+.kbd{display:inline-block;padding:2px 6px;border-radius:6px;border:1px solid var(--border);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;color:var(--fg-dim)}
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#1f2545;color:var(--accent);font-size:.75rem;margin-right:4px}
+.empty{color:var(--fg-dim);font-style:italic}
+form .actions{display:flex;gap:8px;align-items:center;margin-top:12px}
+.copy-input{display:flex;gap:6px}
+.copy-input input{font-family:ui-monospace,Menlo,Consolas,monospace}

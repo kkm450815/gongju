@@ -23,6 +23,9 @@
 | 권능 버튼 → 좌클릭 | 해당 위치에 권능 시전 (신력 소모) |
 | Space | 일시정지 토글 |
 | 1 / 2 / 3 | 속도 1× / 2× / 4× |
+| F2 | 즉시 저장 (`user://save.json`) |
+| F3 | 마지막 저장에서 불러오기 |
+| F4 | 저장 파일 삭제 + 새 게임 시작 |
 
 ## 2. 무료 3D 라이브러리 적용 (예쁘게 만들기)
 
@@ -97,11 +100,24 @@ game/
 | Android | Keystore 별도 |
 | iOS | Xcode export → TestFlight |
 
-## 7. 알려진 한계 (MVP)
+## 7. 구현된 기능 (현재)
 
-- 본격 NPC AI(직장·결혼·기도)는 미구현, 현재는 wander + flee
-- 사운드는 빈 슬롯, `assets/kenney/sfx/`에 받아 넣으면 자동 재생되도록 후속 작업 필요
-- 세이브/로드 미구현
+- ✅ 3D 카메라 + 마을 바닥 + 도로
+- ✅ NPC AI 상태머신 (WANDER / GO_HOME / AT_HOME / GO_WORK / AT_WORK / GO_PRAY / PRAYING / FLEE) — 시간대·공포·행동 태그에 따라 자동 결정
+- ✅ TownRegistry로 건물 분류 (residential/economy/religious/nature) — NPC가 가까운 집·직장·교회를 자동 선택
+- ✅ 권능 시전 (재해 4종·축복 3종)
+- ✅ 신력·공포·번영·인구 게이지
+- ✅ 4언어 i18n (ko/en/ja/zh)
+- ✅ AudioSystem — Kenney sfx 폴더에 파일 있으면 자동 재생, 없으면 무음
+- ✅ SaveSystem — 60초마다 자동 저장 + F2/F3/F4 수동 조작
+- ✅ Telemetry / RemoteConfig — Supabase 키 입력 시 활성화
+- ✅ CC0 에셋 fallback — 모델 없으면 컬러 큐브로 동작
+
+## 8. 알려진 한계
+
+- 결혼·출산·노화 등 인구 동역학 미구현(인구는 현재 정적)
+- 사운드 라이브러리는 Kenney 파일을 받아 `assets/kenney/sfx/`에 넣어야 활성
 - 멀티플레이 미구현
+- 모바일 터치 입력 미세조정 필요(현재는 데스크탑 마우스 위주)
 
 12주 풀 일정은 [`../docs/PRODUCTION_MANUAL.md`](../docs/PRODUCTION_MANUAL.md) §9 참조.

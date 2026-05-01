@@ -9,7 +9,9 @@
 | [`docs/`](./docs) | 제작 설명서 · 데이터 스키마 · 관리자 명세 · 마케팅 플레이북 |
 | [`landing/`](./landing) | **다운로드 가능한 단일 파일 랜딩 페이지** (i18n + UTM 캡처 내장) |
 | [`server/supabase/`](./server/supabase) | Supabase 스키마(SQL) · RLS · 기본 밸런스 시드 |
-| [`game/`](./game) | Godot 4 프로젝트 부트스트랩 가이드 |
+| [`game/`](./game) | Godot 4 MVP 프로젝트 (F5로 즉시 실행, NPC 행동·세이브·오디오 포함) |
+| [`admin/`](./admin) | Next.js 14 관리자 대시보드 (UTM 빌더, 인플루언서, 다운로드 통계) |
+| [`tools/`](./tools) | 무료 CC0 에셋 셋업 스크립트 (`setup_assets.sh`) |
 
 ## 문서 인덱스
 
@@ -45,8 +47,13 @@ start landing/index.html        # Windows
 
 # 3) landing/index.html 안 CONFIG 객체에 SUPABASE_URL / ANON_KEY / DOWNLOADS 입력
 
-# 4) Godot 4 LTS 설치 후 game/ 폴더에 새 프로젝트 생성
-#    (game/README.md 절차를 그대로 따라가면 됨)
+# 4) Godot 4 LTS 설치 후 game/project.godot import → F5로 즉시 실행
+#    (마을이 컬러 큐브로 보임. tools/setup_assets.sh로 Kenney 팩 적용 가능)
+
+# 5) (선택) 관리자 대시보드 띄우기
+cd admin && cp .env.example .env.local
+# .env.local 편집 후
+npm install && npm run dev    # http://localhost:3001
 ```
 
 ## 라이선스

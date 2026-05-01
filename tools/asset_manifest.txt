@@ -1,0 +1,30 @@
+# Recommended free CC0 asset packs — manual download list
+#
+# Workflow:
+#   1) Open each URL below in a browser
+#   2) Click the "Download" button (Kenney) or "Download Now" (Quaternius)
+#      and save the .zip into game/assets/_downloads/
+#   3) Run: bash tools/setup_assets.sh
+# The script auto-extracts each zip and copies the .glb/.gltf models
+# into the folder structure that data/buildings.json and data/npcs.json
+# expect (game/assets/kenney/buildings, .../characters, .../nature, .../sfx).
+#
+# Format: <category>|<expected_zip_filename_substring>|<url>
+# (filename substring is what setup_assets.sh greps for in _downloads/)
+
+buildings|city-kit-suburban|https://kenney.nl/assets/city-kit-suburban
+buildings|city-kit-commercial|https://kenney.nl/assets/city-kit-commercial
+roads|city-kit-roads|https://kenney.nl/assets/city-kit-roads
+characters|mini-characters-1|https://kenney.nl/assets/mini-characters-1
+characters|toon-characters-1|https://kenney.nl/assets/toon-characters-1
+nature|nature-kit|https://kenney.nl/assets/nature-kit
+sfx|impact-sounds|https://kenney.nl/assets/impact-sounds
+sfx|ui-audio|https://kenney.nl/assets/ui-audio
+
+# Optional extras (Quaternius — also CC0)
+characters|UltimateModularMen|https://quaternius.com/packs/ultimatemodularmen.html
+nature|StylizedNatureMega|https://quaternius.com/packs/stylizednatureulitmate.html
+
+# Mixamo animations (Adobe free, requires account):
+# Manually export .glb after rigging characters and place under
+# game/assets/animations/walk.glb / idle.glb / pray.glb / flee.glb

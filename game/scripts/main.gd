@@ -30,10 +30,22 @@ func _ready() -> void:
 	_build_environment()
 	_build_camera()
 	_build_ground()
-	_spawn_buildings()
-	_spawn_npcs()
+
+	# load existing save if present, else fresh world
+	var loaded_state: Dictionary = SaveSystem.load_state() if has_node("/root/SaveSystem") else {}
+	if loaded_state.is_empty():
+		_spawn_buildings()
+		_spawn_npcs()
+	else:
+		_restore_from(loaded_state)
+	_assign_npc_locations()
+
 	_build_hud()
 	_wire_signals()
+
+	# bind save system after world exists
+	if has_node("/root/SaveSystem"):
+		SaveSystem.bind(self, _npcs, _buildings)
 
 	# initial HUD push
 	_hud.update_faith(FaithSystem.faith, FaithSystem.max_faith)
@@ -157,6 +169,8 @@ func _spawn_buildings() -> void:
 		b.destroyed.connect(_on_building_destroyed)
 		add_child(b)
 		_buildings.append(b)
+		if has_node("/root/TownRegistry"):
+			TownRegistry.register_building(b)
 
 func _spawn_npcs() -> void:
 	if not has_node("/root/DataLoader"):
@@ -184,6 +198,8 @@ func _spawn_npcs() -> void:
 		)
 		npc.died.connect(_on_npc_died)
 		_npcs.append(npc)
+		if has_node("/root/TownRegistry"):
+			TownRegistry.register_npc(npc)
 
 # ---------------- HUD wiring ----------------
 func _build_hud() -> void:
@@ -227,7 +243,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mm: InputEventMouseMotion = event
 		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT:
 			_cam_yaw -= mm.relative.x * 0.005
-			_cam_pitch = clamp(_cam_pitch - mm.relative.y * 0.005, -1.4, -0.2)
 			_apply_camera()
 
 	if event is InputEventKey and event.pressed:
@@ -236,6 +251,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_1: TimeSystem.set_speed(1.0)
 			KEY_2: TimeSystem.set_speed(2.0)
 			KEY_3: TimeSystem.set_speed(4.0)
+			KEY_F2:
+				if has_node("/root/SaveSystem"):
+					SaveSystem.save_now()
+					_hud.push_log("💾 saved")
+			KEY_F3:
+				if has_node("/root/SaveSystem"):
+					var st: Dictionary = SaveSystem.load_state()
+					if not st.is_empty():
+						get_tree().reload_current_scene()
+			KEY_F4:
+				if has_node("/root/SaveSystem"):
+					SaveSystem.clear_save()
+					get_tree().reload_current_scene()
 			KEY_W:
 				_camera_pivot.position += Vector3(0, 0, -2).rotated(Vector3.UP, _cam_yaw)
 				_apply_camera()
@@ -331,8 +359,74 @@ func _on_heal_dealt(position: Vector3, radius: float, amount: float) -> void:
 func _on_npc_died(npc: NPC) -> void:
 	_npcs.erase(npc)
 	_hud.update_population(_npcs.size())
+	if has_node("/root/TownRegistry"):
+		TownRegistry.unregister_npc(npc)
+	if has_node("/root/AudioSystem"):
+		AudioSystem.play("npc_die")
 	DisasterSystem.log(I18N.t("LOG_NPC_DIED"))
 
 func _on_building_destroyed(b: Building) -> void:
 	_buildings.erase(b)
+	if has_node("/root/TownRegistry"):
+		TownRegistry.unregister_building(b)
+	if has_node("/root/AudioSystem"):
+		AudioSystem.play("building_destroy")
 	DisasterSystem.log(I18N.t("LOG_BUILDING_DESTROYED"))
+
+# ---------------- NPC location assignment ----------------
+func _assign_npc_locations() -> void:
+	if not has_node("/root/TownRegistry"):
+		return
+	for npc in _npcs:
+		if not is_instance_valid(npc):
+			continue
+		var home = TownRegistry.random_in(TownRegistry.residential)
+		var work = TownRegistry.random_in(TownRegistry.economy)
+		if home: npc.assign_home(home)
+		if work: npc.assign_work(work)
+
+# ---------------- Save/Restore ----------------
+func _restore_from(state: Dictionary) -> void:
+	# restore world from a saved snapshot
+	if has_node("/root/TimeSystem"):
+		TimeSystem.day = int(state.get("day", 1))
+		TimeSystem.time_in_day = float(state.get("time_in_day", 0.0))
+	if has_node("/root/FaithSystem"):
+		FaithSystem.faith = float(state.get("faith", 30.0))
+		FaithSystem.max_faith = float(state.get("max_faith", 100.0))
+		FaithSystem.fear = float(state.get("fear", 0.0))
+	if has_node("/root/EconomySystem"):
+		EconomySystem.prosperity = float(state.get("prosperity", 50.0))
+	if has_node("/root/I18N"):
+		I18N.set_lang(String(state.get("lang", "ko")))
+	# buildings
+	for entry in state.get("buildings", []):
+		var def: Dictionary = DataLoader.get_by_id(String(entry.get("id", "")))
+		if def.is_empty():
+			continue
+		var b := BuildingClass.new()
+		b.setup(def)
+		b.position = Vector3(float(entry.get("x", 0.0)), 0.0, float(entry.get("z", 0.0)))
+		b.hp = float(entry.get("hp", b.max_hp))
+		b.destroyed.connect(_on_building_destroyed)
+		add_child(b)
+		_buildings.append(b)
+		if has_node("/root/TownRegistry"):
+			TownRegistry.register_building(b)
+	# npcs
+	for entry in state.get("npcs", []):
+		var def: Dictionary = DataLoader.get_by_id(String(entry.get("id", "")))
+		if def.is_empty():
+			continue
+		var n := NPCClass.new()
+		add_child(n)
+		n.setup(def, _world_size)
+		n.position = Vector3(float(entry.get("x", 0.0)), 0.0, float(entry.get("z", 0.0)))
+		n.hp = float(entry.get("hp", n.max_hp))
+		n.died.connect(_on_npc_died)
+		_npcs.append(n)
+		if has_node("/root/TownRegistry"):
+			TownRegistry.register_npc(n)
+	print("[Main] restored save: %d buildings, %d npcs, day=%d" % [
+		_buildings.size(), _npcs.size(), int(state.get("day", 0))
+	])
