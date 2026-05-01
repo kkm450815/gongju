@@ -63,7 +63,7 @@ func _build() -> void:
 	var lang := OptionButton.new()
 	for code in ["ko","en","ja","zh"]:
 		lang.add_item(code.to_upper())
-	lang.item_selected.connect(func(idx):
+	lang.item_selected.connect(func(idx: int):
 		var codes := ["ko","en","ja","zh"]
 		emit_signal("lang_change_requested", codes[idx])
 	)

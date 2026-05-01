@@ -19,7 +19,7 @@ var nature: Array = []
 # town center (computed from average building position)
 var center: Vector3 = Vector3.ZERO
 
-func register_building(b) -> void:
+func register_building(b: Variant) -> void:
 	buildings.append(b)
 	var tags: Array = b.data.get("tags", [])
 	if "residential" in tags: residential.append(b)
@@ -30,7 +30,7 @@ func register_building(b) -> void:
 	_recompute_center()
 	emit_signal("building_registered", b)
 
-func unregister_building(b) -> void:
+func unregister_building(b: Variant) -> void:
 	buildings.erase(b)
 	residential.erase(b)
 	economy.erase(b)
@@ -39,17 +39,17 @@ func unregister_building(b) -> void:
 	_recompute_center()
 	emit_signal("building_unregistered", b)
 
-func register_npc(n) -> void:
+func register_npc(n: Variant) -> void:
 	npcs.append(n)
 	emit_signal("npc_registered", n)
 
-func unregister_npc(n) -> void:
+func unregister_npc(n: Variant) -> void:
 	npcs.erase(n)
 	emit_signal("npc_unregistered", n)
 
-func nearest(arr: Array, pos: Vector3):
-	var best = null
-	var best_d := INF
+func nearest(arr: Array, pos: Vector3) -> Variant:
+	var best: Variant = null
+	var best_d: float = INF
 	for x in arr:
 		if not is_instance_valid(x):
 			continue
@@ -59,11 +59,11 @@ func nearest(arr: Array, pos: Vector3):
 			best = x
 	return best
 
-func random_in(arr: Array):
+func random_in(arr: Array) -> Variant:
 	if arr.is_empty():
 		return null
 	for _i in 6:
-		var pick = arr[randi() % arr.size()]
+		var pick: Variant = arr[randi() % arr.size()]
 		if is_instance_valid(pick):
 			return pick
 	return null

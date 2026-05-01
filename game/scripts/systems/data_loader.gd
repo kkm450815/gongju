@@ -36,20 +36,20 @@ func balance_value(key: String, default_value = null) -> Variant:
 
 # ---- internals ----
 func _load_array(path: String) -> Array:
-	var text := _read_text(path)
+	var text: String = _read_text(path)
 	if text == "":
 		return []
-	var parsed = JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_ARRAY:
 		push_error("[DataLoader] expected array in %s" % path)
 		return []
 	return parsed
 
 func _load_object(path: String) -> Dictionary:
-	var text := _read_text(path)
+	var text: String = _read_text(path)
 	if text == "":
 		return {}
-	var parsed = JSON.parse_string(text)
+	var parsed: Variant = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_error("[DataLoader] expected object in %s" % path)
 		return {}

@@ -71,7 +71,7 @@ static func build(footprint: Array, body_color: Color, tags: Array, rng: RandomN
 	if body_h > 3.2:
 		win_y_levels = [body_h * 0.4, body_h * 0.75]
 	for win_y in win_y_levels:
-		var n_per_row := max(1, int((sx - 1.0) / 1.4))
+		var n_per_row: int = max(1, int((sx - 1.0) / 1.4))
 		for i in n_per_row:
 			var x := (i - (n_per_row - 1) * 0.5) * 1.2
 			# front

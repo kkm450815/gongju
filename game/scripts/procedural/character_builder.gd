@@ -88,9 +88,9 @@ static func build(opts: Dictionary = {}) -> Node3D:
 
 	return root
 
-static func _box(pos: Vector3, size: Vector3, col: Color, name: String) -> MeshInstance3D:
+static func _box(pos: Vector3, size: Vector3, col: Color, node_name: String) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
-	mi.name = name
+	mi.name = node_name
 	var box := BoxMesh.new()
 	box.size = size
 	mi.mesh = box

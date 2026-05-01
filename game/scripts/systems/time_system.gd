@@ -14,7 +14,7 @@ var paused: bool = false
 func _ready() -> void:
 	if has_node("/root/DataLoader"):
 		await get_tree().process_frame  # let DataLoader populate
-		var v = DataLoader.balance_value("day_length_sec", 120.0)
+		var v: Variant = DataLoader.balance_value("day_length_sec", 120.0)
 		day_length_sec = float(v)
 
 func _process(delta: float) -> void:

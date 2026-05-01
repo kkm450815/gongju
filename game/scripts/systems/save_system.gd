@@ -65,7 +65,7 @@ func load_state() -> Dictionary:
 		return {}
 	var txt := f.get_as_text()
 	f.close()
-	var parsed = JSON.parse_string(txt)
+	var parsed: Variant = JSON.parse_string(txt)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return {}
 	emit_signal("loaded", parsed)

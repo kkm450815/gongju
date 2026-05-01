@@ -26,14 +26,14 @@ func _on_done(_result: int, code: int, _headers: PackedStringArray, body: Packed
 	if code != 200:
 		push_warning("[RemoteConfig] HTTP %d" % code)
 		return
-	var parsed = JSON.parse_string(body.get_string_from_utf8())
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if typeof(parsed) != TYPE_ARRAY:
 		return
 	if not has_node("/root/DataLoader"):
 		return
 	for row in parsed:
-		var k = row.get("key")
-		var v = row.get("value")
+		var k: Variant = row.get("key")
+		var v: Variant = row.get("value")
 		if k != null and v != null:
 			DataLoader.balance[String(k)] = v
 	emit_signal("config_synced")

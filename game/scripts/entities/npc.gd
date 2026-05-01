@@ -35,8 +35,8 @@ var world_size: float = 60.0
 
 var state: int = State.WANDER
 var target_pos: Vector3 = Vector3.ZERO
-var home_b = null
-var work_b = null
+var home_b: Variant = null
+var work_b: Variant = null
 var _replan_in: float = 0.0
 var _state_dwell: float = 0.0
 var _last_known_fear: float = 0.0
@@ -58,15 +58,15 @@ func setup(npc_data: Dictionary, world_size_m: float) -> void:
 	_pick_random_target()
 	_build_visual()
 
-func assign_home(b) -> void:
+func assign_home(b: Variant) -> void:
 	home_b = b
 
-func assign_work(b) -> void:
+func assign_work(b: Variant) -> void:
 	work_b = b
 
 # ---------------- Visual ----------------
 func _assign_personality() -> void:
-	var rng := RandomNumberGenerator.new()
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
 	personality = {
 		"job":     JOBS[rng.randi() % JOBS.size()],
@@ -74,12 +74,13 @@ func _assign_personality() -> void:
 		"palette": CharacterBuilderClass.random_palette(rng),
 	}
 	# child / priest overrides
+	var palette: Dictionary = personality["palette"]
 	if String(data.get("id", "")) == "priest":
 		personality["job"] = "priest"
-		personality["palette"]["shirt"] = Color("#3a3060")
+		palette["shirt"] = Color("#3a3060")
 	if String(data.get("id", "")) == "child":
 		personality["job"] = "student"
-		personality["palette"]["shirt"] = Color("#ffd166")
+		palette["shirt"] = Color("#ffd166")
 
 func _build_visual() -> void:
 	# physics body
@@ -101,7 +102,8 @@ func _build_visual() -> void:
 				add_child(_figure_root)
 				return
 	# 2) fallback: procedural composite figure
-	var opts := personality.get("palette", {}).duplicate()
+	var palette: Dictionary = personality.get("palette", {})
+	var opts: Dictionary = palette.duplicate()
 	opts["child"] = String(data.get("id", "")) == "child"
 	_figure_root = CharacterBuilderClass.build(opts)
 	add_child(_figure_root)
@@ -126,28 +128,28 @@ func _physics_process(delta: float) -> void:
 
 func _decide_next_state() -> void:
 	var behaviors: Array = data.get("behaviors", ["wander"])
-	var fear_thresh := float(data.get("fear_threshold", 80))
+	var fear_thresh: float = float(data.get("fear_threshold", 80))
 	if _last_known_fear > fear_thresh and "flee" in behaviors:
 		_set_state(State.FLEE, _flee_target())
 		return
 	var t: float = TimeSystem.time_in_day if has_node("/root/TimeSystem") else 0.5
 	if (t < 0.20 or t > 0.80):
-		var h = home_b if is_instance_valid(home_b) else _find_home()
-		if h:
+		var h: Variant = home_b if is_instance_valid(home_b) else _find_home()
+		if h != null:
 			home_b = h
 			_set_state(State.GO_HOME, h.global_position)
 			return
-	var pray_chance := 0.10
+	var pray_chance: float = 0.10
 	if String(data.get("id", "")) == "priest":
 		pray_chance = 0.85
 	if t > 0.20 and t < 0.30 and "pray" in behaviors and randf() < pray_chance:
-		var church = TownRegistry.random_in(TownRegistry.religious) if has_node("/root/TownRegistry") else null
-		if church:
+		var church: Variant = TownRegistry.random_in(TownRegistry.religious) if has_node("/root/TownRegistry") else null
+		if church != null:
 			_set_state(State.GO_PRAY, church.global_position)
 			return
 	if t > 0.30 and t < 0.75 and ("work" in behaviors or "wander" in behaviors):
-		var w = work_b if is_instance_valid(work_b) else _find_work()
-		if w:
+		var w: Variant = work_b if is_instance_valid(work_b) else _find_work()
+		if w != null:
 			work_b = w
 			_set_state(State.GO_WORK, w.global_position)
 			return
@@ -235,15 +237,15 @@ func _flee_target() -> Vector3:
 		dir = Vector3(randf_range(-1, 1), 0, randf_range(-1, 1))
 	return global_position + dir.normalized() * (world_size * 0.4)
 
-func _find_home():
+func _find_home() -> Variant:
 	if not has_node("/root/TownRegistry"):
 		return null
 	return TownRegistry.nearest(TownRegistry.residential, global_position)
 
-func _find_work():
+func _find_work() -> Variant:
 	if not has_node("/root/TownRegistry"):
 		return null
-	var w = TownRegistry.nearest(TownRegistry.economy, global_position)
+	var w: Variant = TownRegistry.nearest(TownRegistry.economy, global_position)
 	if w == null:
 		w = TownRegistry.nearest(TownRegistry.residential, global_position)
 	return w
@@ -267,11 +269,13 @@ func _update_activity_badge() -> void:
 func _emoji_for_state() -> String:
 	match state:
 		State.AT_WORK:
-			return JOB_EMOJI.get(personality.get("job", ""), "💼")
+			var job_key: String = String(personality.get("job", ""))
+			return String(JOB_EMOJI.get(job_key, "💼"))
 		State.WANDER:
 			# show hobby occasionally
 			if randf() < 0.5:
-				return HOBBY_EMOJI.get(personality.get("hobby", ""), "")
+				var hobby_key: String = String(personality.get("hobby", ""))
+				return String(HOBBY_EMOJI.get(hobby_key, ""))
 			return ""
 		State.PRAYING:
 			return "🙏"

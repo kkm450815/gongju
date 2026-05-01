@@ -102,16 +102,13 @@ func _update_day_night() -> void:
 		return
 	# time_in_day: 0=midnight, 0.5=noon, 1=midnight again
 	var t: float = TimeSystem.time_in_day
-	# sun pitch varies from -90 (below horizon) to +90 (overhead)
-	var pitch_deg := lerp(-90.0, 90.0, t)
-	# but we want night, sunrise, day, sunset over 0..1 cycle, so reshape
-	var sun_x := sin((t - 0.25) * TAU)        # -1 at midnight, +1 at noon
-	var sun_y := -cos((t - 0.25) * TAU)       # high at noon (positive in our axis)
+	# reshape to night / sunrise / day / sunset cycle
+	var sun_x: float = sin((t - 0.25) * TAU)        # -1 at midnight, +1 at noon
 	_sun.rotation = Vector3(deg_to_rad(-(sun_x * 70.0)), deg_to_rad(40), 0)
 
 	# light color and energy
-	var day_factor := clamp(sun_x, 0.0, 1.0)         # 0 night, 1 noon
-	var dusk_factor := clamp(1.0 - abs(sun_x) * 1.4, 0.0, 1.0)  # 1 around horizon
+	var day_factor: float = clamp(sun_x, 0.0, 1.0)              # 0 night, 1 noon
+	var dusk_factor: float = clamp(1.0 - abs(sun_x) * 1.4, 0.0, 1.0)  # 1 around horizon
 	_sun.light_energy = lerp(0.05, 1.4, day_factor)
 	_sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.55, 0.35), dusk_factor)
 
@@ -131,7 +128,7 @@ func _build_camera() -> void:
 
 func _apply_camera() -> void:
 	# orbit: pivot at center, camera offset by yaw + pitch
-	var p_clamped := clamp(_cam_pitch, 0.25, 1.45)
+	var p_clamped: float = clamp(_cam_pitch, 0.25, 1.45)
 	var horiz: float = _zoom * cos(p_clamped)
 	var height: float = _zoom * sin(p_clamped)
 	var offset := Vector3(sin(_cam_yaw) * horiz, height, cos(_cam_yaw) * horiz)
@@ -313,15 +310,15 @@ func _build_hud() -> void:
 	)
 
 func _wire_signals() -> void:
-	FaithSystem.faith_changed.connect(func(v, mv): _hud.update_faith(v, mv))
-	FaithSystem.fear_changed.connect(func(v): _hud.update_fear(v))
-	EconomySystem.prosperity_changed.connect(func(v): _hud.update_prosperity(v))
-	TimeSystem.day_advanced.connect(func(d): _hud.update_day(d))
+	FaithSystem.faith_changed.connect(func(v: float, mv: float): _hud.update_faith(v, mv))
+	FaithSystem.fear_changed.connect(func(v: float): _hud.update_fear(v))
+	EconomySystem.prosperity_changed.connect(func(v: float): _hud.update_prosperity(v))
+	TimeSystem.day_advanced.connect(func(d: int): _hud.update_day(d))
 
 	DisasterSystem.power_cast.connect(_on_power_cast)
 	DisasterSystem.damage_dealt.connect(_on_damage_dealt)
 	DisasterSystem.heal_dealt.connect(_on_heal_dealt)
-	DisasterSystem.log_message.connect(func(t): _hud.push_log(t))
+	DisasterSystem.log_message.connect(func(t: String): _hud.push_log(t))
 
 # ---------------- Input / Camera ----------------
 func _unhandled_input(event: InputEvent) -> void:
@@ -488,10 +485,10 @@ func _assign_npc_locations() -> void:
 	for npc in _npcs:
 		if not is_instance_valid(npc):
 			continue
-		var home = TownRegistry.random_in(TownRegistry.residential)
-		var work = TownRegistry.random_in(TownRegistry.economy)
-		if home: npc.assign_home(home)
-		if work: npc.assign_work(work)
+		var home: Variant = TownRegistry.random_in(TownRegistry.residential)
+		var work: Variant = TownRegistry.random_in(TownRegistry.economy)
+		if home != null: npc.assign_home(home)
+		if work != null: npc.assign_work(work)
 
 # ---------------- Save / Restore ----------------
 func _restore_from(state: Dictionary) -> void:
