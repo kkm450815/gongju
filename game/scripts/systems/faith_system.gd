@@ -9,6 +9,7 @@ var faith: float = 30.0
 var max_faith: float = 100.0
 var level: int = 1
 var fear: float = 0.0           # 0..100 town-wide
+var infinite: bool = false
 var _regen_per_sec: float = 0.8
 var _building_faith_per_sec: float = 0.0
 
@@ -17,11 +18,17 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_regen_per_sec = float(DataLoader.balance_value("faith_regen_per_sec", 0.8))
 		max_faith = float(DataLoader.balance_value("max_faith_base", 100.0))
+		infinite = bool(DataLoader.balance_value("infinite_faith", false))
+		if infinite:
+			faith = max_faith
 
 func _process(delta: float) -> void:
 	var fear_decay := float(DataLoader.balance_value("fear_decay_per_sec", 0.1)) if has_node("/root/DataLoader") else 0.1
 	var prev_faith := faith
-	faith = clamp(faith + (_regen_per_sec + _building_faith_per_sec) * delta, 0.0, max_faith)
+	if infinite:
+		faith = max_faith
+	else:
+		faith = clamp(faith + (_regen_per_sec + _building_faith_per_sec) * delta, 0.0, max_faith)
 	if absf(faith - prev_faith) > 0.01:
 		emit_signal("faith_changed", faith, max_faith)
 	var prev_fear := fear
@@ -30,9 +37,15 @@ func _process(delta: float) -> void:
 		emit_signal("fear_changed", fear)
 
 func can_afford(cost: float) -> bool:
-	return faith >= cost
+	return infinite or faith >= cost
 
 func spend(cost: float) -> bool:
+	if infinite:
+		# keep faith full while in test mode
+		if faith < max_faith:
+			faith = max_faith
+			emit_signal("faith_changed", faith, max_faith)
+		return true
 	if not can_afford(cost):
 		return false
 	faith -= cost

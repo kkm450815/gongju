@@ -1,16 +1,23 @@
 extends Node3D
-## Main — builds the world programmatically (camera, sun, ground, buildings, NPCs)
-## and wires HUD <-> systems together. No .tscn editing required.
+## Main — builds the world programmatically (camera, sun, ground, buildings,
+## NPCs, cars, trees) and wires HUD <-> systems together.
 
 const HUDClass := preload("res://scripts/ui/hud.gd")
 const NPCClass := preload("res://scripts/entities/npc.gd")
 const BuildingClass := preload("res://scripts/entities/building.gd")
 const PowerVFXClass := preload("res://scripts/powers/power_vfx.gd")
+const CarClass := preload("res://scripts/entities/car.gd")
+const TreeClass := preload("res://scripts/entities/tree.gd")
+const SpeechBubbleClass := preload("res://scripts/ui/speech_bubble.gd")
 
 var _camera: Camera3D
 var _camera_pivot: Node3D
 var _zoom: float = 28.0
 var _cam_yaw: float = 0.0
+var _cam_pitch: float = 0.6
+var _sun: DirectionalLight3D
+var _world_env: WorldEnvironment
+
 var _hud: HUD
 var _world_size: float = 60.0
 var _selected_power_id: String = ""
@@ -18,20 +25,21 @@ var _selected_power_kind: String = ""    # "disaster" | "blessing"
 var _power_cooldowns: Dictionary = {}    # id -> next-allowed-time
 var _npcs: Array[NPC] = []
 var _buildings: Array[Building] = []
+var _cars: Array[Car] = []
+var _trees: Array[DecorTree] = []
 var _ground: StaticBody3D
 
 func _ready() -> void:
-	# Wait one frame so DataLoader (autoload) has populated
+	# Wait one frame so DataLoader autoload has populated
 	await get_tree().process_frame
 	if has_node("/root/DataLoader"):
-		_world_size = float(DataLoader.balance_value("town_size", 60.0))
-		_zoom = float(DataLoader.balance_value("camera_default_zoom", 28.0))
+		_world_size = float(DataLoader.balance_value("town_size", 70.0))
+		_zoom = float(DataLoader.balance_value("camera_default_zoom", 30.0))
 
 	_build_environment()
 	_build_camera()
 	_build_ground()
 
-	# load existing save if present, else fresh world
 	var loaded_state: Dictionary = SaveSystem.load_state() if has_node("/root/SaveSystem") else {}
 	if loaded_state.is_empty():
 		_spawn_buildings()
@@ -39,25 +47,30 @@ func _ready() -> void:
 	else:
 		_restore_from(loaded_state)
 	_assign_npc_locations()
+	_spawn_cars()
+	_spawn_trees()
 
 	_build_hud()
 	_wire_signals()
 
-	# bind save system after world exists
 	if has_node("/root/SaveSystem"):
 		SaveSystem.bind(self, _npcs, _buildings)
 
-	# initial HUD push
 	_hud.update_faith(FaithSystem.faith, FaithSystem.max_faith)
 	_hud.update_population(_npcs.size())
 	_hud.update_prosperity(EconomySystem.prosperity)
 	_hud.update_fear(FaithSystem.fear)
 	_hud.update_day(TimeSystem.day)
 	_hud.push_log("⚡ %s" % I18N.t("HUD_HINT_SELECT"))
+	if FaithSystem.infinite:
+		_hud.push_log("∞ test mode: 신력 무제한")
+
+func _process(_delta: float) -> void:
+	_update_day_night()
 
 # ---------------- Environment ----------------
 func _build_environment() -> void:
-	var env := WorldEnvironment.new()
+	_world_env = WorldEnvironment.new()
 	var e := Environment.new()
 	e.background_mode = Environment.BG_SKY
 	var sky := Sky.new()
@@ -72,17 +85,40 @@ func _build_environment() -> void:
 	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	e.ambient_light_energy = 0.6
 	e.fog_enabled = true
-	e.fog_density = 0.005
+	e.fog_density = 0.004
 	e.fog_light_color = Color(0.6, 0.7, 1.0)
-	env.environment = e
-	add_child(env)
+	_world_env.environment = e
+	add_child(_world_env)
 
-	var sun := DirectionalLight3D.new()
-	sun.rotation = Vector3(deg_to_rad(-50), deg_to_rad(40), 0)
-	sun.light_energy = 1.2
-	sun.light_color = Color(1.0, 0.95, 0.85)
-	sun.shadow_enabled = true
-	add_child(sun)
+	_sun = DirectionalLight3D.new()
+	_sun.rotation = Vector3(deg_to_rad(-50), deg_to_rad(40), 0)
+	_sun.light_energy = 1.2
+	_sun.light_color = Color(1.0, 0.95, 0.85)
+	_sun.shadow_enabled = true
+	add_child(_sun)
+
+func _update_day_night() -> void:
+	if not has_node("/root/TimeSystem") or _sun == null:
+		return
+	# time_in_day: 0=midnight, 0.5=noon, 1=midnight again
+	var t: float = TimeSystem.time_in_day
+	# sun pitch varies from -90 (below horizon) to +90 (overhead)
+	var pitch_deg := lerp(-90.0, 90.0, t)
+	# but we want night, sunrise, day, sunset over 0..1 cycle, so reshape
+	var sun_x := sin((t - 0.25) * TAU)        # -1 at midnight, +1 at noon
+	var sun_y := -cos((t - 0.25) * TAU)       # high at noon (positive in our axis)
+	_sun.rotation = Vector3(deg_to_rad(-(sun_x * 70.0)), deg_to_rad(40), 0)
+
+	# light color and energy
+	var day_factor := clamp(sun_x, 0.0, 1.0)         # 0 night, 1 noon
+	var dusk_factor := clamp(1.0 - abs(sun_x) * 1.4, 0.0, 1.0)  # 1 around horizon
+	_sun.light_energy = lerp(0.05, 1.4, day_factor)
+	_sun.light_color = Color(1.0, 0.95, 0.85).lerp(Color(1.0, 0.55, 0.35), dusk_factor)
+
+	# environment ambient
+	if _world_env and _world_env.environment:
+		var env := _world_env.environment
+		env.ambient_light_energy = lerp(0.15, 0.7, day_factor)
 
 func _build_camera() -> void:
 	_camera_pivot = Node3D.new()
@@ -94,9 +130,10 @@ func _build_camera() -> void:
 	_camera.current = true
 
 func _apply_camera() -> void:
-	# top-down-ish orbit: place the camera above and behind the pivot, then look at it
-	var height: float = _zoom * 0.85
-	var horiz: float = _zoom * 0.55
+	# orbit: pivot at center, camera offset by yaw + pitch
+	var p_clamped := clamp(_cam_pitch, 0.25, 1.45)
+	var horiz: float = _zoom * cos(p_clamped)
+	var height: float = _zoom * sin(p_clamped)
 	var offset := Vector3(sin(_cam_yaw) * horiz, height, cos(_cam_yaw) * horiz)
 	_camera.global_position = _camera_pivot.global_position + offset
 	_camera.look_at(_camera_pivot.global_position, Vector3.UP)
@@ -106,17 +143,18 @@ func _build_ground() -> void:
 	add_child(_ground)
 	var col := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3(_world_size + 20, 0.5, _world_size + 20)
+	box.size = Vector3(_world_size + 30, 0.5, _world_size + 30)
 	col.shape = box
 	col.position.y = -0.25
 	_ground.add_child(col)
 
 	var mi := MeshInstance3D.new()
 	var pl := PlaneMesh.new()
-	pl.size = Vector2(_world_size + 20, _world_size + 20)
+	pl.size = Vector2(_world_size + 30, _world_size + 30)
 	mi.mesh = pl
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.20, 0.32, 0.20)
+	mat.albedo_color = Color(0.20, 0.36, 0.22)
+	mat.roughness = 1.0
 	mi.material_override = mat
 	_ground.add_child(mi)
 
@@ -125,15 +163,43 @@ func _build_ground() -> void:
 		var rmi := MeshInstance3D.new()
 		var rp := PlaneMesh.new()
 		if axis == Vector3.RIGHT:
-			rp.size = Vector2(_world_size, 4)
+			rp.size = Vector2(_world_size, 5)
 		else:
-			rp.size = Vector2(4, _world_size)
+			rp.size = Vector2(5, _world_size)
 		rmi.mesh = rp
 		var rmat := StandardMaterial3D.new()
-		rmat.albedo_color = Color(0.22, 0.22, 0.28)
+		rmat.albedo_color = Color(0.18, 0.18, 0.22)
 		rmi.material_override = rmat
 		rmi.position.y = 0.02
 		_ground.add_child(rmi)
+
+	# road dashes (white center line)
+	for i in range(-int(_world_size / 2), int(_world_size / 2), 4):
+		var dash := MeshInstance3D.new()
+		var dp := PlaneMesh.new()
+		dp.size = Vector2(1.6, 0.18)
+		dash.mesh = dp
+		var dmat := StandardMaterial3D.new()
+		dmat.albedo_color = Color(1, 1, 1, 0.85)
+		dmat.emission_enabled = true
+		dmat.emission = Color(1, 1, 1)
+		dmat.emission_energy_multiplier = 0.2
+		dash.material_override = dmat
+		dash.position = Vector3(i, 0.03, 0)
+		_ground.add_child(dash)
+	for i in range(-int(_world_size / 2), int(_world_size / 2), 4):
+		var dash2 := MeshInstance3D.new()
+		var dp2 := PlaneMesh.new()
+		dp2.size = Vector2(0.18, 1.6)
+		dash2.mesh = dp2
+		var dmat2 := StandardMaterial3D.new()
+		dmat2.albedo_color = Color(1, 1, 1, 0.85)
+		dmat2.emission_enabled = true
+		dmat2.emission = Color(1, 1, 1)
+		dmat2.emission_energy_multiplier = 0.2
+		dash2.material_override = dmat2
+		dash2.position = Vector3(0, 0.03, i)
+		_ground.add_child(dash2)
 
 # ---------------- Spawning ----------------
 func _spawn_buildings() -> void:
@@ -142,8 +208,7 @@ func _spawn_buildings() -> void:
 	var defs: Array = DataLoader.buildings
 	if defs.is_empty():
 		return
-	var n: int = int(DataLoader.balance_value("starting_buildings", 12))
-	# weighted choice
+	var n: int = int(DataLoader.balance_value("starting_buildings", 16))
 	var pool: Array = []
 	for d in defs:
 		var w: int = int(d.get("weight", 1))
@@ -161,11 +226,16 @@ func _spawn_buildings() -> void:
 			randf_range(-_world_size * 0.45, _world_size * 0.45)
 		)
 		# nudge away from the cross-roads
-		if absf(pos.x) < 3.0:
-			pos.x = (1.0 if pos.x >= 0.0 else -1.0) * 3.5
-		if absf(pos.z) < 3.0:
-			pos.z = (1.0 if pos.z >= 0.0 else -1.0) * 3.5
+		if absf(pos.x) < 4.0:
+			pos.x = (1.0 if pos.x >= 0.0 else -1.0) * 5.0
+		if absf(pos.z) < 4.0:
+			pos.z = (1.0 if pos.z >= 0.0 else -1.0) * 5.0
 		b.position = pos
+		# face the road
+		if abs(pos.x) > abs(pos.z):
+			b.rotation.y = (deg_to_rad(-90) if pos.x > 0 else deg_to_rad(90))
+		else:
+			b.rotation.y = (deg_to_rad(180) if pos.z > 0 else 0.0)
 		b.destroyed.connect(_on_building_destroyed)
 		add_child(b)
 		_buildings.append(b)
@@ -178,7 +248,7 @@ func _spawn_npcs() -> void:
 	var defs: Array = DataLoader.npcs
 	if defs.is_empty():
 		return
-	var n: int = int(DataLoader.balance_value("starting_npcs", 18))
+	var n: int = int(DataLoader.balance_value("starting_npcs", 28))
 	var pool: Array = []
 	for d in defs:
 		var w: int = int(d.get("weight", 1))
@@ -201,6 +271,33 @@ func _spawn_npcs() -> void:
 		if has_node("/root/TownRegistry"):
 			TownRegistry.register_npc(npc)
 
+func _spawn_cars() -> void:
+	var n: int = int(DataLoader.balance_value("starting_cars", 6)) if has_node("/root/DataLoader") else 6
+	for i in n:
+		var c := CarClass.new()
+		add_child(c)
+		var axis := "x" if i % 2 == 0 else "z"
+		var lane := -1.2 if (i / 2) % 2 == 0 else 1.2
+		c.setup(axis, lane, _world_size)
+		_cars.append(c)
+
+func _spawn_trees() -> void:
+	var n: int = int(DataLoader.balance_value("starting_trees", 24)) if has_node("/root/DataLoader") else 24
+	for i in n:
+		var t := TreeClass.new()
+		add_child(t)
+		t.setup(0)
+		var pos := Vector3(
+			randf_range(-_world_size * 0.5, _world_size * 0.5),
+			0.0,
+			randf_range(-_world_size * 0.5, _world_size * 0.5)
+		)
+		# don't put trees on roads
+		if absf(pos.x) < 5.0 and absf(pos.z) < 5.0:
+			pos.x += 8.0 * (1.0 if pos.x >= 0.0 else -1.0)
+		t.position = pos
+		_trees.append(t)
+
 # ---------------- HUD wiring ----------------
 func _build_hud() -> void:
 	_hud = HUDClass.new()
@@ -211,7 +308,6 @@ func _build_hud() -> void:
 	_hud.pause_toggle_requested.connect(func(): TimeSystem.toggle_pause())
 	_hud.lang_change_requested.connect(func(l: String):
 		I18N.set_lang(l)
-		# rebuild HUD labels by re-populating (cheapest)
 		_hud.queue_free()
 		_build_hud()
 	)
@@ -235,14 +331,26 @@ func _unhandled_input(event: InputEvent) -> void:
 			_zoom = max(_zoom - 2.0, float(DataLoader.balance_value("camera_min_zoom", 8.0)))
 			_apply_camera()
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom = min(_zoom + 2.0, float(DataLoader.balance_value("camera_max_zoom", 60.0)))
+			_zoom = min(_zoom + 2.0, float(DataLoader.balance_value("camera_max_zoom", 80.0)))
 			_apply_camera()
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			_try_cast_at_mouse(mb.position)
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event
+		# right-button drag = orbit (yaw + pitch)
 		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT:
 			_cam_yaw -= mm.relative.x * 0.005
+			_cam_pitch = clamp(_cam_pitch - mm.relative.y * 0.005, 0.25, 1.45)
+			_apply_camera()
+		# middle-button drag = pan
+		elif mm.button_mask & MOUSE_BUTTON_MASK_MIDDLE:
+			var pan_speed: float = _zoom * 0.0025
+			var dx: float = mm.relative.x * pan_speed
+			var dy: float = mm.relative.y * pan_speed
+			# screen-space delta -> world XZ relative to current yaw
+			var right := Vector3(cos(_cam_yaw), 0, -sin(_cam_yaw))
+			var forward := Vector3(sin(_cam_yaw), 0, cos(_cam_yaw))
+			_camera_pivot.position -= right * dx - forward * dy
 			_apply_camera()
 
 	if event is InputEventKey and event.pressed:
@@ -284,18 +392,15 @@ func _try_cast_at_mouse(screen_pos: Vector2) -> void:
 	var data: Dictionary = DataLoader.get_by_id(_selected_power_id)
 	if data.is_empty():
 		return
-	# cooldown
 	var now := Time.get_ticks_msec() / 1000.0
 	var allowed_at: float = _power_cooldowns.get(_selected_power_id, 0.0)
 	if now < allowed_at:
 		_hud.hint(I18N.t("HUD_HINT_COOLDOWN"))
 		return
-	# faith
 	var cost := float(data.get("cost_faith", 0))
 	if not FaithSystem.spend(cost):
 		_hud.hint(I18N.t("HUD_HINT_NOT_ENOUGH"))
 		return
-	# raycast to ground
 	var from := _camera.project_ray_origin(screen_pos)
 	var to   := from + _camera.project_ray_normal(screen_pos) * 1000.0
 	var space := get_world_3d().direct_space_state
@@ -305,13 +410,11 @@ func _try_cast_at_mouse(screen_pos: Vector2) -> void:
 	if hit.has("position"):
 		pos = hit["position"]
 	else:
-		# math fallback: intersect with y=0 plane
 		var dir := (to - from).normalized()
 		if abs(dir.y) < 0.001:
 			return
 		var tparam := -from.y / dir.y
 		pos = from + dir * tparam
-	# cast
 	if _selected_power_kind == "disaster":
 		DisasterSystem.cast_disaster(data, pos)
 	else:
@@ -336,13 +439,15 @@ func _on_power_cast(power_id: String, position: Vector3) -> void:
 	vfx.play(data)
 
 func _on_damage_dealt(position: Vector3, radius: float, amount: float) -> void:
-	# damage NPCs
 	for npc in _npcs:
 		if not is_instance_valid(npc):
 			continue
-		if npc.global_position.distance_to(position) <= radius:
+		var d: float = npc.global_position.distance_to(position)
+		if d <= radius:
 			npc.take_damage(amount)
-	# damage buildings
+		elif d <= radius * 2.0:
+			# nearby NPCs get scared too
+			npc.scare()
 	for b in _buildings:
 		if not is_instance_valid(b):
 			continue
@@ -353,8 +458,11 @@ func _on_heal_dealt(position: Vector3, radius: float, amount: float) -> void:
 	for npc in _npcs:
 		if not is_instance_valid(npc):
 			continue
-		if npc.global_position.distance_to(position) <= radius:
+		var d: float = npc.global_position.distance_to(position)
+		if d <= radius:
 			npc.heal(amount)
+		elif d <= radius * 1.6:
+			npc.bless()
 
 func _on_npc_died(npc: NPC) -> void:
 	_npcs.erase(npc)
@@ -385,9 +493,8 @@ func _assign_npc_locations() -> void:
 		if home: npc.assign_home(home)
 		if work: npc.assign_work(work)
 
-# ---------------- Save/Restore ----------------
+# ---------------- Save / Restore ----------------
 func _restore_from(state: Dictionary) -> void:
-	# restore world from a saved snapshot
 	if has_node("/root/TimeSystem"):
 		TimeSystem.day = int(state.get("day", 1))
 		TimeSystem.time_in_day = float(state.get("time_in_day", 0.0))
@@ -399,7 +506,6 @@ func _restore_from(state: Dictionary) -> void:
 		EconomySystem.prosperity = float(state.get("prosperity", 50.0))
 	if has_node("/root/I18N"):
 		I18N.set_lang(String(state.get("lang", "ko")))
-	# buildings
 	for entry in state.get("buildings", []):
 		var def: Dictionary = DataLoader.get_by_id(String(entry.get("id", "")))
 		if def.is_empty():
@@ -413,7 +519,6 @@ func _restore_from(state: Dictionary) -> void:
 		_buildings.append(b)
 		if has_node("/root/TownRegistry"):
 			TownRegistry.register_building(b)
-	# npcs
 	for entry in state.get("npcs", []):
 		var def: Dictionary = DataLoader.get_by_id(String(entry.get("id", "")))
 		if def.is_empty():

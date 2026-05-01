@@ -1,10 +1,11 @@
 extends CharacterBody3D
-## NPC — state-machine driven villager.
-## States: WANDER, GO_HOME, AT_HOME, GO_WORK, AT_WORK, GO_PRAY, PRAYING, FLEE
-## Decisions are based on time-of-day (TimeSystem), town fear (FaithSystem),
-## the NPC's behavior tags, and the buildings registered in TownRegistry.
+## NPC — state-machine driven villager with personality (job + hobby) and
+## visible emotional reactions to disasters and blessings.
 
 class_name NPC
+
+const CharacterBuilderClass := preload("res://scripts/procedural/character_builder.gd")
+const SpeechBubbleClass := preload("res://scripts/ui/speech_bubble.gd")
 
 signal died(npc: NPC)
 
@@ -12,6 +13,19 @@ enum State { WANDER, GO_HOME, AT_HOME, GO_WORK, AT_WORK, GO_PRAY, PRAYING, FLEE 
 
 const ARRIVE_DIST := 1.2
 const REPLAN_INTERVAL_SEC := 4.0
+
+# personality lookup tables
+const JOBS := ["farmer", "shopkeeper", "teacher", "doctor", "smith", "baker", "musician", "artist", "fisher", "guard"]
+const HOBBIES := ["fishing", "reading", "cooking", "exercise", "painting", "music", "gardening", "stargazing", "dancing"]
+const JOB_EMOJI := {
+	"farmer": "🌾", "shopkeeper": "🛒", "teacher": "📚", "doctor": "🩺",
+	"smith": "🔨", "baker": "🍞", "musician": "🎵", "artist": "🎨",
+	"fisher": "🎣", "guard": "🛡️",
+}
+const HOBBY_EMOJI := {
+	"fishing": "🎣", "reading": "📖", "cooking": "🍳", "exercise": "💪",
+	"painting": "🎨", "music": "🎵", "gardening": "🌱", "stargazing": "🌙", "dancing": "💃",
+}
 
 var data: Dictionary = {}
 var hp: float = 100.0
@@ -21,11 +35,18 @@ var world_size: float = 60.0
 
 var state: int = State.WANDER
 var target_pos: Vector3 = Vector3.ZERO
-var home_b = null            # Building or null
+var home_b = null
 var work_b = null
 var _replan_in: float = 0.0
 var _state_dwell: float = 0.0
 var _last_known_fear: float = 0.0
+var _walk_phase: float = 0.0
+var _figure_root: Node3D
+var _badge: SpeechBubble        # persistent activity badge
+var _last_state: int = -1
+
+# personality
+var personality: Dictionary = {}    # {job, hobby, palette}
 
 func setup(npc_data: Dictionary, world_size_m: float) -> void:
 	data = npc_data
@@ -33,6 +54,7 @@ func setup(npc_data: Dictionary, world_size_m: float) -> void:
 	hp = max_hp
 	speed = float(data.get("speed", 2.0))
 	world_size = world_size_m
+	_assign_personality()
 	_pick_random_target()
 	_build_visual()
 
@@ -42,31 +64,47 @@ func assign_home(b) -> void:
 func assign_work(b) -> void:
 	work_b = b
 
+# ---------------- Visual ----------------
+func _assign_personality() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()
+	personality = {
+		"job":     JOBS[rng.randi() % JOBS.size()],
+		"hobby":   HOBBIES[rng.randi() % HOBBIES.size()],
+		"palette": CharacterBuilderClass.random_palette(rng),
+	}
+	# child / priest overrides
+	if String(data.get("id", "")) == "priest":
+		personality["job"] = "priest"
+		personality["palette"]["shirt"] = Color("#3a3060")
+	if String(data.get("id", "")) == "child":
+		personality["job"] = "student"
+		personality["palette"]["shirt"] = Color("#ffd166")
+
 func _build_visual() -> void:
+	# physics body
 	var col := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.3
-	capsule.height = 1.6
+	capsule.height = 1.5
 	col.shape = capsule
-	col.position.y = 0.8
+	col.position.y = 0.85
 	add_child(col)
 
+	# 1) try GLB model first
 	var path := String(data.get("model", ""))
 	if path != "" and ResourceLoader.exists(path):
 		var packed := load(path)
 		if packed is PackedScene:
-			add_child((packed as PackedScene).instantiate())
-			return
-	# fallback colored capsule-ish box
-	var mi := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(0.6, 1.6, 0.6)
-	mi.mesh = box
-	mi.position.y = 0.8
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(String(data.get("fallback_color", "#eef1f8")))
-	mi.material_override = mat
-	add_child(mi)
+			_figure_root = (packed as PackedScene).instantiate() as Node3D
+			if _figure_root != null:
+				add_child(_figure_root)
+				return
+	# 2) fallback: procedural composite figure
+	var opts := personality.get("palette", {}).duplicate()
+	opts["child"] = String(data.get("id", "")) == "child"
+	_figure_root = CharacterBuilderClass.build(opts)
+	add_child(_figure_root)
 
 # ---------------- AI ----------------
 func _physics_process(delta: float) -> void:
@@ -82,39 +120,37 @@ func _physics_process(delta: float) -> void:
 
 	_run_state(delta)
 
+	if state != _last_state:
+		_last_state = state
+		_update_activity_badge()
+
 func _decide_next_state() -> void:
 	var behaviors: Array = data.get("behaviors", ["wander"])
-	# 1) panic flee
 	var fear_thresh := float(data.get("fear_threshold", 80))
 	if _last_known_fear > fear_thresh and "flee" in behaviors:
 		_set_state(State.FLEE, _flee_target())
 		return
-	# 2) time-of-day routine
 	var t: float = TimeSystem.time_in_day if has_node("/root/TimeSystem") else 0.5
-	# night: 0..0.20 or 0.80..1.0  -> sleep at home
 	if (t < 0.20 or t > 0.80):
 		var h = home_b if is_instance_valid(home_b) else _find_home()
 		if h:
 			home_b = h
 			_set_state(State.GO_HOME, h.global_position)
 			return
-	# pray window: 0.20..0.30 -> chance for priests, lower for others
 	var pray_chance := 0.10
-	if data.get("id", "") == "priest":
+	if String(data.get("id", "")) == "priest":
 		pray_chance = 0.85
 	if t > 0.20 and t < 0.30 and "pray" in behaviors and randf() < pray_chance:
 		var church = TownRegistry.random_in(TownRegistry.religious) if has_node("/root/TownRegistry") else null
 		if church:
 			_set_state(State.GO_PRAY, church.global_position)
 			return
-	# work window: 0.30..0.75 if behavior allows
 	if t > 0.30 and t < 0.75 and ("work" in behaviors or "wander" in behaviors):
 		var w = work_b if is_instance_valid(work_b) else _find_work()
 		if w:
 			work_b = w
 			_set_state(State.GO_WORK, w.global_position)
 			return
-	# default: wander
 	_set_state(State.WANDER, _random_pos())
 
 func _set_state(new_state: int, new_target: Vector3) -> void:
@@ -125,29 +161,30 @@ func _set_state(new_state: int, new_target: Vector3) -> void:
 func _run_state(delta: float) -> void:
 	match state:
 		State.WANDER:
-			_walk_toward(target_pos, 1.0)
+			_walk_toward(target_pos, 1.0, delta)
 			if _arrived(target_pos):
 				_set_state(State.WANDER, _random_pos())
 		State.GO_HOME:
-			_walk_toward(target_pos, 1.0)
+			_walk_toward(target_pos, 1.0, delta)
 			if _arrived(target_pos):
 				_set_state(State.AT_HOME, target_pos)
 		State.AT_HOME:
-			# stay put for up to a few seconds, replan_check will move us
 			velocity = Vector3.ZERO
 			move_and_slide()
 		State.GO_WORK:
-			_walk_toward(target_pos, 1.0)
+			_walk_toward(target_pos, 1.0, delta)
 			if _arrived(target_pos):
 				_set_state(State.AT_WORK, target_pos)
 		State.AT_WORK:
 			velocity = Vector3.ZERO
 			move_and_slide()
-			# small wander while working
-			if _state_dwell > 5.0:
-				_set_state(State.WANDER, _around(target_pos, 4.0))
+			# subtle "working" bob
+			if _figure_root:
+				_figure_root.rotation.y += 0.6 * delta
+			if _state_dwell > 8.0:
+				_set_state(State.WANDER, _around(target_pos, 5.0))
 		State.GO_PRAY:
-			_walk_toward(target_pos, 1.0)
+			_walk_toward(target_pos, 1.0, delta)
 			if _arrived(target_pos):
 				_set_state(State.PRAYING, target_pos)
 		State.PRAYING:
@@ -156,12 +193,12 @@ func _run_state(delta: float) -> void:
 			if has_node("/root/FaithSystem") and _state_dwell > 1.0:
 				FaithSystem.add(0.5 * delta * float(data.get("faith_contribution", 1.0)))
 		State.FLEE:
-			_walk_toward(target_pos, 1.7)
+			_walk_toward(target_pos, 1.7, delta)
 			if _arrived(target_pos):
 				_set_state(State.FLEE, _flee_target())
 
-# ---------------- Helpers ----------------
-func _walk_toward(p: Vector3, speed_mul: float) -> void:
+# ---------------- Movement helpers ----------------
+func _walk_toward(p: Vector3, speed_mul: float, delta: float) -> void:
 	var dir := p - global_position
 	dir.y = 0.0
 	if dir.length() < 0.05:
@@ -172,6 +209,10 @@ func _walk_toward(p: Vector3, speed_mul: float) -> void:
 	var look := global_position + Vector3(v.x, 0, v.z)
 	if (look - global_position).length() > 0.05:
 		look_at(look, Vector3.UP)
+	# walking bob
+	_walk_phase += delta * 8.0 * speed_mul
+	if _figure_root:
+		_figure_root.position.y = abs(sin(_walk_phase)) * 0.05
 	move_and_slide()
 
 func _arrived(p: Vector3) -> bool:
@@ -202,7 +243,6 @@ func _find_home():
 func _find_work():
 	if not has_node("/root/TownRegistry"):
 		return null
-	# prefer nearest economy building, fallback to nearest residential (errands)
 	var w = TownRegistry.nearest(TownRegistry.economy, global_position)
 	if w == null:
 		w = TownRegistry.nearest(TownRegistry.residential, global_position)
@@ -211,12 +251,76 @@ func _find_work():
 func _pick_random_target() -> void:
 	target_pos = _random_pos()
 
+# ---------------- Activity badge ----------------
+func _update_activity_badge() -> void:
+	var emoji := _emoji_for_state()
+	if emoji == "":
+		if _badge and is_instance_valid(_badge):
+			_badge.queue_free()
+			_badge = null
+		return
+	if _badge == null or not is_instance_valid(_badge):
+		_badge = SpeechBubbleClass.attach(self, emoji)
+	else:
+		_badge.set_text(emoji)
+
+func _emoji_for_state() -> String:
+	match state:
+		State.AT_WORK:
+			return JOB_EMOJI.get(personality.get("job", ""), "💼")
+		State.WANDER:
+			# show hobby occasionally
+			if randf() < 0.5:
+				return HOBBY_EMOJI.get(personality.get("hobby", ""), "")
+			return ""
+		State.PRAYING:
+			return "🙏"
+		State.GO_HOME, State.AT_HOME:
+			return "💤"
+		State.FLEE:
+			return "😱"
+		_:
+			return ""
+
 # ---------------- Damage / Heal ----------------
 func take_damage(amount: float) -> void:
 	hp -= amount
 	if hp <= 0.0:
 		emit_signal("died", self)
 		queue_free()
+		return
+	_react_negative()
 
 func heal(amount: float) -> void:
 	hp = min(hp + amount, max_hp)
+	_react_positive()
+
+func bless() -> void:
+	_react_positive()
+
+func scare() -> void:
+	_react_negative()
+
+func _react_positive() -> void:
+	# pop a heart and bounce
+	SpeechBubbleClass.spawn(self, "❤️", 1.5, 2.6)
+	_animate_bounce(1.4, Color.WHITE)
+
+func _react_negative() -> void:
+	SpeechBubbleClass.spawn(self, "😱", 1.5, 2.6)
+	_animate_shake()
+
+func _animate_bounce(amplitude: float, _flash: Color) -> void:
+	if _figure_root == null:
+		return
+	var tw := create_tween()
+	tw.tween_property(_figure_root, "scale", Vector3(1.0, amplitude, 1.0), 0.12)
+	tw.tween_property(_figure_root, "scale", Vector3(1.0, 1.0, 1.0), 0.20)
+
+func _animate_shake() -> void:
+	if _figure_root == null:
+		return
+	var tw := create_tween()
+	tw.tween_property(_figure_root, "rotation:z", deg_to_rad(8), 0.05)
+	tw.tween_property(_figure_root, "rotation:z", deg_to_rad(-8), 0.10)
+	tw.tween_property(_figure_root, "rotation:z", 0.0, 0.05)
